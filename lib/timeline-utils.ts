@@ -6,6 +6,21 @@ export const DAY_WIDTH_PX: Record<ZoomLevel, number> = {
   month: 5,
 }
 
+export const VISIBLE_DAY_COUNT: Record<ZoomLevel, number> = {
+  day: 60,
+  week: 84,
+  month: 180,
+}
+
+export const RESOURCE_COL_WIDTH = 192
+
+/**
+ * Add `days` days to a UTC date without local-time drift.
+ */
+export function addUTCDays(date: Date, days: number): Date {
+  return new Date(date.getTime() + days * 86_400_000)
+}
+
 // All math uses UTC exclusively — no local-time conversions anywhere
 
 /**

@@ -3,18 +3,18 @@
 import { useTimelineStore } from '@/lib/store/timeline'
 import {
   DAY_WIDTH_PX,
+  VISIBLE_DAY_COUNT,
+  RESOURCE_COL_WIDTH,
   getVisibleDays,
   formatAxisDate,
 } from '@/lib/timeline-utils'
-
-const RESOURCE_COL_WIDTH = 192
 
 export function DateAxis() {
   const viewportStart = useTimelineStore((s) => s.viewportStart)
   const zoomLevel = useTimelineStore((s) => s.zoomLevel)
 
   const dayWidthPx = DAY_WIDTH_PX[zoomLevel]
-  const visibleDayCount = { day: 60, week: 84, month: 180 }[zoomLevel]
+  const visibleDayCount = VISIBLE_DAY_COUNT[zoomLevel]
   const totalWidthPx = RESOURCE_COL_WIDTH + visibleDayCount * dayWidthPx
 
   const days = getVisibleDays(viewportStart, totalWidthPx - RESOURCE_COL_WIDTH, dayWidthPx)
@@ -27,13 +27,13 @@ export function DateAxis() {
       {/* Spacer aligns with resource name column */}
       <div className="w-48 shrink-0" />
       {/* Day columns */}
-      {days.map((date, i) => {
+      {days.map((date) => {
         const isWeekend = date.getUTCDay() === 0 || date.getUTCDay() === 6
         const isToday = date.getTime() === todayUTC
 
         return (
           <div
-            key={i}
+            key={date.getTime()}
             style={{ width: dayWidthPx, minWidth: dayWidthPx }}
             className={[
               'flex items-center justify-center text-xs truncate border-r border-border/40',

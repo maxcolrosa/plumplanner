@@ -1,13 +1,15 @@
 'use client'
 
-import { useState } from 'react'
 import { useTimelineStore } from '@/lib/store/timeline'
-import { DAY_WIDTH_PX, dateToPixel } from '@/lib/timeline-utils'
+import {
+  DAY_WIDTH_PX,
+  VISIBLE_DAY_COUNT,
+  RESOURCE_COL_WIDTH,
+  dateToPixel,
+} from '@/lib/timeline-utils'
 import { DateAxis } from './date-axis'
 import { ResourceRow } from './resource-row'
 import type { WorkingWeek } from '@/lib/types'
-
-const RESOURCE_COL_WIDTH = 192
 
 interface TimelineGridProps {
   resources: Array<{
@@ -23,10 +25,8 @@ export function TimelineGrid({ resources, orgId }: TimelineGridProps) {
   const viewportStart = useTimelineStore((s) => s.viewportStart)
   const zoomLevel = useTimelineStore((s) => s.zoomLevel)
 
-  const [_addResourceOpen, setAddResourceOpen] = useState(false)
-
   const dayWidthPx = DAY_WIDTH_PX[zoomLevel]
-  const visibleDayCount = { day: 60, week: 84, month: 180 }[zoomLevel]
+  const visibleDayCount = VISIBLE_DAY_COUNT[zoomLevel]
   const totalWidthPx = RESOURCE_COL_WIDTH + visibleDayCount * dayWidthPx
 
   const today = new Date(
@@ -43,9 +43,10 @@ export function TimelineGrid({ resources, orgId }: TimelineGridProps) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-4 text-muted-foreground">
         <p>No resources yet.</p>
+        {/* TODO Task 5: wire to toolbar add-resource dialog */}
         <button
           className="text-sm underline underline-offset-2"
-          onClick={() => setAddResourceOpen(true)}
+          disabled
         >
           Create your first resource
         </button>
@@ -64,7 +65,7 @@ export function TimelineGrid({ resources, orgId }: TimelineGridProps) {
             style={{ left: todayLineLeft }}
           />
           {resources.map((resource) => (
-            <ResourceRow key={resource.id} resource={resource} orgId={orgId} />
+            <ResourceRow key={resource.id} resource={resource} />
           ))}
         </div>
       </div>

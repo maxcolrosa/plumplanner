@@ -10,7 +10,6 @@ interface ResourceRowProps {
     name: string
     icon_type: 'person' | 'room' | 'equipment'
   }
-  orgId: string
 }
 
 const ICON_MAP = {

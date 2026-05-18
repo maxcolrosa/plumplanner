@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useTimelineStore } from '@/lib/store/timeline'
 import { Button } from '@/components/ui/button'
+import { addUTCDays } from '@/lib/timeline-utils'
 import type { ZoomLevel } from '@/lib/timeline-utils'
 import type { WorkingWeek } from '@/lib/types'
 
@@ -16,10 +17,6 @@ interface TimelineToolbarProps {
   }>
   projects: Array<{ id: string; name: string; color: string }>
   orgId: string
-}
-
-function addDays(date: Date, days: number): Date {
-  return new Date(date.getTime() + days * 86_400_000)
 }
 
 const ZOOM_STEPS: Record<ZoomLevel, number> = {
@@ -54,7 +51,7 @@ export function TimelineToolbar({ resources, projects, orgId }: TimelineToolbarP
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => setViewportStart(addDays(viewportStart, -step))}
+          onClick={() => setViewportStart(addUTCDays(viewportStart, -step))}
           aria-label="Previous period"
         >
           <ChevronLeft className="h-4 w-4" />
@@ -65,7 +62,7 @@ export function TimelineToolbar({ resources, projects, orgId }: TimelineToolbarP
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => setViewportStart(addDays(viewportStart, step))}
+          onClick={() => setViewportStart(addUTCDays(viewportStart, step))}
           aria-label="Next period"
         >
           <ChevronRight className="h-4 w-4" />
