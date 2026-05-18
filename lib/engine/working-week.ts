@@ -24,7 +24,9 @@ export function hoursToEndDate(startDate: Date, hours: number, ww: WorkingWeek):
   if (hours === 0) return toMidnightUTC(startDate)
   let remaining = hours
   let current = toMidnightUTC(startDate)
+  let iterations = 0
   while (true) {
+    if (++iterations > 366) throw new Error('hoursToEndDate: no working day found within 366 days — WorkingWeek may have all-none capacity')
     const cap = capacityForDay(current, ww)
     if (cap > 0) {
       if (cap >= remaining) return current
@@ -50,7 +52,9 @@ export function endDateToHours(startDate: Date, endDate: Date, ww: WorkingWeek):
 // Returns `date` itself if it is a working day (capacity > 0), else advances to the next working day.
 export function nextWorkingDay(date: Date, ww: WorkingWeek): Date {
   let current = toMidnightUTC(date)
+  let iterations = 0
   while (capacityForDay(current, ww) === 0) {
+    if (++iterations > 366) throw new Error('nextWorkingDay: no working day found within 366 days — WorkingWeek may have all-none capacity')
     current = addDays(current, 1)
   }
   return current
