@@ -119,10 +119,17 @@ describe('formatAxisDate', () => {
     expect(formatAxisDate(monday, 'month')).toBe('May')
   })
 
-  it('day zoom → "Wed 1" for June 1', () => {
-    const june1 = utcDate(2024, 6, 1) // Saturday actually — let's use a known day
-    // June 1 2024 is a Saturday
+  it('day zoom → "Sat 1" for June 1, 2024', () => {
+    const june1 = utcDate(2024, 6, 1) // June 1 2024 is a Saturday
     expect(formatAxisDate(june1, 'day')).toBe('Sat 1')
+  })
+
+  it('week zoom → "W53 Jan" for Jan 1 2021 (ISO week 53 of 2020)', () => {
+    expect(formatAxisDate(utcDate(2021, 1, 1), 'week')).toBe('W53 Jan')
+  })
+
+  it('week zoom → "W1 Dec" for Dec 30 2024 (ISO week 1 of 2025)', () => {
+    expect(formatAxisDate(utcDate(2024, 12, 30), 'week')).toBe('W1 Dec')
   })
 
   it('month zoom → "Jan" for January', () => {

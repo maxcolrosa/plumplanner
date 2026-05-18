@@ -21,7 +21,7 @@ interface TimelineState {
 interface TimelineActions {
   setViewportStart: (d: Date) => void
   setZoomLevel: (z: ZoomLevel) => void
-  scrollToToday: () => void
+  scrollToCurrentWeek: () => void
   setTasks: (resourceId: string, tasks: EngineTask[]) => void
   setAllTasks: (tasks: Record<string, EngineTask[]>) => void
   setViolations: (v: ConstraintViolation[]) => void
@@ -40,9 +40,7 @@ export type TimelineStore = ReturnType<typeof createTimelineStore>
 
 export function createTimelineStore(
   initial?: Partial<TimelineState>,
-): ReturnType<
-  typeof createStore<TimelineState & TimelineActions>
-> {
+): TimelineStore {
   return createStore<TimelineState & TimelineActions>((set, get) => ({
     // --- default state ---
     viewportStart: startOfCurrentWeekUTC(),
@@ -60,7 +58,7 @@ export function createTimelineStore(
 
     setZoomLevel: (z) => set({ zoomLevel: z }),
 
-    scrollToToday: () => set({ viewportStart: startOfCurrentWeekUTC() }),
+    scrollToCurrentWeek: () => set({ viewportStart: startOfCurrentWeekUTC() }),
 
     setTasks: (resourceId, tasks) =>
       set((state) => ({
@@ -77,7 +75,7 @@ export function createTimelineStore(
 
     beginOptimistic: (resourceId, newTasks) =>
       set((state) => ({
-        preOptimisticTasks: state.tasks,
+        preOptimisticTasks: state.preOptimisticTasks ?? state.tasks, // keep original snapshot if already in optimistic state
         tasks: { ...state.tasks, [resourceId]: newTasks },
       })),
 

@@ -104,20 +104,16 @@ export function formatAxisDate(date: Date, zoom: ZoomLevel): string {
 
 /**
  * ISO week number using UTC date math only.
- * Uses ISO convention: week starts on Monday, Mon=1…Sun=7.
- * Formula: Math.floor((dayOfYear1Indexed - isoDoW + 10) / 7)
+ * Uses the canonical Thursday-of-the-week algorithm: find Thursday of the
+ * same ISO week; that Thursday's year determines the week year.
+ * Correctly handles year-boundary dates (e.g. Jan 1 2021 → W53, Dec 30 2024 → W1).
  */
 function getISOWeekUTC(date: Date): number {
-  const utcDayOfWeek = date.getUTCDay() // 0=Sun, 1=Mon, … 6=Sat
-  // ISO day of week: Mon=1, Tue=2, … Sun=7
-  const isoDoW = utcDayOfWeek === 0 ? 7 : utcDayOfWeek
-
-  const startOfYear = Date.UTC(date.getUTCFullYear(), 0, 1)
-  // 1-indexed day of year (Jan 1 = 1)
-  const dayOfYear =
-    Math.floor((date.getTime() - startOfYear) / 86_400_000) + 1
-
-  return Math.floor((dayOfYear - isoDoW + 10) / 7)
+  // Find Thursday of the same ISO week; that Thursday's year determines the week year.
+  const thursday = new Date(date)
+  thursday.setUTCDate(date.getUTCDate() + 4 - (date.getUTCDay() || 7))
+  const yearStart = Date.UTC(thursday.getUTCFullYear(), 0, 1)
+  return Math.ceil(((thursday.getTime() - yearStart) / 86_400_000 + 1) / 7)
 }
 
 /**
