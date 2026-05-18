@@ -38,8 +38,16 @@ export function TaskBlock({ task, taskAreaRef, resourceTasks }: TaskBlockProps) 
 
   const taskRef = useRef<HTMLDivElement>(null)
   const resizeDaysRef = useRef<number | null>(null)
+  const resizeCleanupRef = useRef<(() => void) | null>(null)
+  const inflightRef = useRef(false)
+  const isInteractingRef = useRef(false)
   const [shaking, setShaking] = useState(false)
   const [resizeDays, setResizeDays] = useState<number | null>(null)
+
+  // Clean up resize listeners if component unmounts during an active resize
+  useEffect(() => {
+    return () => { resizeCleanupRef.current?.() }
+  }, [])
 
   // Clear shake animation after 400ms
   useEffect(() => {
@@ -90,12 +98,32 @@ export function TaskBlock({ task, taskAreaRef, resourceTasks }: TaskBlockProps) 
 
     const atPosition = computeDropPosition(dropX, viewportStart, dayWidthPx, resourceTasks)
 
+    // In-flight gate: prevent concurrent rapid drags from corrupting the snapshot
+    if (inflightRef.current) return
+    inflightRef.current = true
+
+    // Interaction mutex: prevent simultaneous drag + resize from corrupting store state
+    if (isInteractingRef.current) {
+      inflightRef.current = false
+      return
+    }
+    isInteractingRef.current = true
+
     // Build optimistic reordered task list
     const fluidTasks = resourceTasks
       .filter((t) => t.type === 'fluid')
       .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
 
     const withoutDragged = fluidTasks.filter((t) => t.id !== task.id)
+
+    // Guard against stale resourceTasks — if dragged task not found, bail out
+    const dragged = fluidTasks.find((t) => t.id === task.id)
+    if (!dragged) {
+      inflightRef.current = false
+      isInteractingRef.current = false
+      return
+    }
+
     const clampedPos = Math.min(atPosition, withoutDragged.length)
     withoutDragged.splice(clampedPos, 0, task)
     const reorderedFluid = withoutDragged.map((t, i) => ({ ...t, position: i }))
@@ -109,6 +137,7 @@ export function TaskBlock({ task, taskAreaRef, resourceTasks }: TaskBlockProps) 
       const result = await reorderFluidTask(task.id, atPosition)
       if ('tasks' in result) {
         store.setTasks(task.resource_id, result.tasks)
+        store.setViolations(result.violations)
         store.commitOptimistic()
       } else {
         store.revertOptimistic()
@@ -117,6 +146,9 @@ export function TaskBlock({ task, taskAreaRef, resourceTasks }: TaskBlockProps) 
     } catch {
       store.revertOptimistic()
       setShaking(true)
+    } finally {
+      inflightRef.current = false
+      isInteractingRef.current = false
     }
   }
 
@@ -128,7 +160,14 @@ export function TaskBlock({ task, taskAreaRef, resourceTasks }: TaskBlockProps) 
     e.stopPropagation()
     e.preventDefault()
 
-    if (!taskRef.current) return
+    // Interaction mutex: prevent simultaneous drag + resize from corrupting store state
+    if (isInteractingRef.current) return
+    isInteractingRef.current = true
+
+    if (!taskRef.current) {
+      isInteractingRef.current = false
+      return
+    }
     const taskLeft = taskRef.current.getBoundingClientRect().left
 
     const onMove = (ev: PointerEvent) => {
@@ -137,9 +176,15 @@ export function TaskBlock({ task, taskAreaRef, resourceTasks }: TaskBlockProps) 
       setResizeDays(days)
     }
 
-    const onUp = async () => {
+    const cleanup = () => {
       document.removeEventListener('pointermove', onMove)
       document.removeEventListener('pointerup', onUp)
+      resizeCleanupRef.current = null
+    }
+    resizeCleanupRef.current = cleanup
+
+    const onUp = async () => {
+      cleanup()
 
       const finalDays = resizeDaysRef.current ?? Math.max(1, Math.round(width / dayWidthPx))
       resizeDaysRef.current = null
@@ -155,6 +200,7 @@ export function TaskBlock({ task, taskAreaRef, resourceTasks }: TaskBlockProps) 
         setShaking(true)
       } finally {
         setResizeDays(null)
+        isInteractingRef.current = false
       }
     }
 
