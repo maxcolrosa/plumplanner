@@ -5,6 +5,7 @@ CREATE OR REPLACE FUNCTION is_org_member(p_org_id uuid)
 RETURNS boolean
 LANGUAGE sql
 SECURITY DEFINER
+SET search_path = public, pg_temp
 STABLE
 AS $$
   SELECT EXISTS (
@@ -20,6 +21,7 @@ CREATE OR REPLACE FUNCTION is_org_admin(p_org_id uuid)
 RETURNS boolean
 LANGUAGE sql
 SECURITY DEFINER
+SET search_path = public, pg_temp
 STABLE
 AS $$
   SELECT EXISTS (
@@ -134,6 +136,7 @@ CREATE POLICY "members can view own tokens"
 
 CREATE POLICY "members can manage own tokens"
   ON integration_tokens FOR ALL
-  USING (member_id IN (
-    SELECT id FROM org_members WHERE user_id = auth.uid()
-  ));
+  USING (
+    is_org_member(org_id)
+    AND member_id IN (SELECT id FROM org_members WHERE user_id = auth.uid())
+  );
