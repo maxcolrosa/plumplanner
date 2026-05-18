@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(superpowers:writing-plans)",
+      "Bash(npx create-next-app@latest *)",
+      "Bash(mkdir -p /tmp/plum_backup)",
+      "Bash(mv /Users/maxdennis/Desktop/plumplanner/CLAUDE.md /tmp/plum_backup/)",
+      "Bash(mv \"/Users/maxdennis/Desktop/plumplanner/Plum Planner Spec.markdown\" /tmp/plum_backup/)",
+      "Bash(mv /Users/maxdennis/Desktop/plumplanner/docs /tmp/plum_backup/)"
+    ]
+  }
+}
