@@ -1,4 +1,5 @@
 import { createStore, useStore } from 'zustand'
+import type { StoreApi } from 'zustand'
 import { createContext, useContext } from 'react'
 import type { EngineTask, ConstraintViolation } from '@/lib/engine/types'
 import type { ZoomLevel } from '@/lib/timeline-utils'
@@ -36,7 +37,6 @@ interface TimelineActions {
 // Store factory (vanilla — one instance per component tree via useMemo)
 // ---------------------------------------------------------------------------
 
-import type { StoreApi } from 'zustand'
 export type TimelineStore = StoreApi<TimelineState & TimelineActions>
 
 export function createTimelineStore(

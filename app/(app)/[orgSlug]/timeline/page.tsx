@@ -27,20 +27,28 @@ export default async function TimelinePage({ params }: Props) {
   if (!org) notFound()
 
   // 2. Parallel fetch
-  const [{ data: resources }, { data: taskRows }, { data: projects }] = await Promise.all([
+  const [
+    { data: resources, error: resourcesError },
+    { data: taskRows, error: tasksError },
+    { data: projects, error: projectsError },
+  ] = await Promise.all([
     supabase
       .from('resources')
       .select('id, name, icon_type, working_week')
       .eq('org_id', org.id),
     supabase
       .from('tasks')
-      .select('*')
+      .select('id, org_id, resource_id, project_id, name, type, status, start_date, end_date, duration_hours, actual_duration_hours, position, task_group_id, segment_index, constraints, tags, external_ref, created_at, updated_at')
       .eq('org_id', org.id),
     supabase
       .from('projects')
       .select('id, name, color')
       .eq('org_id', org.id),
   ])
+
+  if (resourcesError || tasksError || projectsError) {
+    throw new Error('Failed to load timeline data')
+  }
 
   // 3. Convert task rows → EngineTask (string dates → Date)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -82,7 +90,6 @@ export default async function TimelinePage({ params }: Props) {
   return (
     <div className="flex items-center justify-center h-full text-muted-foreground">
       <p>Timeline UI coming in Task 3 — {org.name}</p>
-      {/* Data ready: {typedResources.length} resources, {engineTasks.length} tasks, {typedProjects.length} projects */}
     </div>
   )
 }

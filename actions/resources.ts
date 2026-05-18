@@ -17,6 +17,12 @@ export async function createResource(
   name: string,
   iconType: 'person' | 'room' | 'equipment'
 ): Promise<{ id: string } | { error: string }> {
+  const trimmedName = name.trim()
+  if (!trimmedName) return { error: 'Resource name is required' }
+
+  // Basic sanity — callers always derive orgId from a server-fetched row, but guard anyway
+  if (!orgId?.match(/^[0-9a-f-]{36}$/i)) return { error: 'Invalid organisation' }
+
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -36,7 +42,7 @@ export async function createResource(
     .from('resources')
     .insert({
       org_id: orgId,
-      name: name.trim(),
+      name: trimmedName,
       icon_type: iconType,
       working_week: DEFAULT_WORKING_WEEK,
     })
