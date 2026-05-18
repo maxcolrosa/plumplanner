@@ -46,9 +46,9 @@ export async function middleware(request: NextRequest) {
     return withCookies(NextResponse.redirect(url), supabaseResponse)
   }
 
-  // Redirect authenticated users away from auth routes
+  // Redirect authenticated users away from auth routes and marketing root
   const isAuthRoute = AUTH_ROUTES.some(p => pathname.startsWith(p))
-  if (user && isAuthRoute) {
+  if (user && (isAuthRoute || pathname === '/')) {
     const url = request.nextUrl.clone()
     url.pathname = '/app'
     return withCookies(NextResponse.redirect(url), supabaseResponse)
