@@ -304,6 +304,68 @@ export async function adjustTask(
   return { tasks: result, violations }
 }
 
+export async function reorderFluidTask(
+  taskId: string,
+  atPosition: number
+): Promise<ActionResult> {
+  const supabase = await createClient()
+  const admin = createServiceClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { data: taskRow } = await supabase
+    .from('tasks')
+    .select('resource_id')
+    .eq('id', taskId)
+    .single()
+
+  if (!taskRow) return { error: 'Task not found' }
+
+  const fetched = await fetchResourceAndTasks(taskRow.resource_id, supabase)
+  if (!fetched) return { error: 'Resource not found' }
+
+  const { resource, tasks, orgId } = fetched
+
+  const original = tasks.find((t) => t.id === taskId)
+  if (!original) return { error: 'Task not found in resource' }
+  if (original.type !== 'fluid') return { error: 'Only fluid tasks can be reordered' }
+
+  // Delete then re-insert at new position, preserving all task data
+  const afterDelete = engineDeleteTask(tasks, taskId)
+  const taskInput: TaskInput = {
+    id: original.id,
+    org_id: original.org_id,
+    resource_id: original.resource_id,
+    project_id: original.project_id,
+    name: original.name,
+    type: 'fluid',
+    duration_hours: original.duration_hours,
+    constraints: original.constraints,
+    tags: original.tags,
+    external_ref: original.external_ref,
+  }
+
+  const now = new Date()
+  const result = engineInsertTask(resource, afterDelete, taskInput, atPosition, now)
+  const violations = validateConstraints(result)
+
+  const { error } = await persistAndBroadcast(
+    admin,
+    supabase,
+    orgId,
+    resource.id,
+    tasks,
+    result
+  )
+  if (error) return { error }
+
+  revalidatePath('/[orgSlug]/timeline', 'page')
+  return { tasks: result, violations }
+}
+
 export async function compressResource(
   resourceId: string,
   fromDate: string,

@@ -1,5 +1,6 @@
 'use client'
 
+import { useRef } from 'react'
 import { User, Building2, Wrench } from 'lucide-react'
 import { useTimelineStore } from '@/lib/store/timeline'
 import { TaskBlock } from './task-block'
@@ -20,6 +21,7 @@ const ICON_MAP = {
 
 export function ResourceRow({ resource }: ResourceRowProps) {
   const tasks = useTimelineStore((s) => s.tasks[resource.id] ?? [])
+  const taskAreaRef = useRef<HTMLDivElement>(null)
 
   const Icon = ICON_MAP[resource.icon_type]
 
@@ -32,9 +34,14 @@ export function ResourceRow({ resource }: ResourceRowProps) {
       </div>
 
       {/* Task area */}
-      <div className="relative h-16 flex-1 overflow-visible">
+      <div ref={taskAreaRef} className="relative h-16 flex-1 overflow-visible">
         {tasks.map((task) => (
-          <TaskBlock key={task.id} task={task} />
+          <TaskBlock
+            key={task.id}
+            task={task}
+            taskAreaRef={taskAreaRef}
+            resourceTasks={tasks}
+          />
         ))}
       </div>
     </div>
