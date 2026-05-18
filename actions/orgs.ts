@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { randomBytes } from 'crypto'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { generateOrgSlug, validateInviteEmail } from '@/lib/orgs-utils'
 
 // Re-export pure helpers so tests can import from @/actions/orgs
@@ -13,6 +13,7 @@ export { generateOrgSlug, validateInviteEmail }
 
 export async function createOrg(formData: FormData) {
   const supabase = await createClient()
+  const admin = createServiceClient()
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/sign-in')
@@ -23,7 +24,7 @@ export async function createOrg(formData: FormData) {
   let slug = generateOrgSlug(name)
   if (!slug) return { error: 'Organisation name must contain at least one letter or number' }
 
-  const { data: existing } = await supabase
+  const { data: existing } = await admin
     .from('orgs')
     .select('id')
     .eq('slug', slug)
@@ -31,7 +32,7 @@ export async function createOrg(formData: FormData) {
 
   if (existing) slug = `${slug.slice(0, 43)}-${randomBytes(3).toString('hex')}`
 
-  const { data: org, error: orgError } = await supabase
+  const { data: org, error: orgError } = await admin
     .from('orgs')
     .insert({ name: name.trim(), slug })
     .select()
@@ -39,7 +40,7 @@ export async function createOrg(formData: FormData) {
 
   if (orgError || !org) return { error: orgError?.message ?? 'Failed to create organisation' }
 
-  const { error: memberError } = await supabase
+  const { error: memberError } = await admin
     .from('org_members')
     .insert({
       org_id: org.id,
@@ -49,7 +50,7 @@ export async function createOrg(formData: FormData) {
     })
 
   if (memberError) {
-    await supabase.from('orgs').delete().eq('id', org.id)
+    await admin.from('orgs').delete().eq('id', org.id)
     return { error: memberError.message }
   }
 
