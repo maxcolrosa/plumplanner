@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import type { EngineTask } from '@/lib/engine/types'
 import type { WorkingWeek } from '@/lib/types'
+import { TimelineView } from '@/components/timeline/timeline-view'
 
 interface Props {
   params: Promise<{ orgSlug: string }>
@@ -80,16 +81,12 @@ export default async function TimelinePage({ params }: Props) {
     color: string
   }>
 
-  // 5. TODO (Task 3): Replace stub with:
-  // <TimelineView
-  //   initialTasks={tasksByResource}
-  //   resources={typedResources}
-  //   org={org}
-  //   projects={typedProjects}
-  // />
   return (
-    <div className="flex items-center justify-center h-full text-muted-foreground">
-      <p>Timeline UI coming in Task 3 — {org.name}</p>
-    </div>
+    <TimelineView
+      initialTasks={tasksByResource}
+      resources={typedResources}
+      org={org}
+      projects={typedProjects}
+    />
   )
 }
