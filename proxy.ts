@@ -11,7 +11,7 @@ function withCookies(redirect: ReturnType<typeof NextResponse.redirect>, base: N
   return redirect
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   let supabaseResponse = NextResponse.next({ request })
