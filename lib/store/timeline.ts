@@ -36,7 +36,8 @@ interface TimelineActions {
 // Store factory (vanilla — one instance per component tree via useMemo)
 // ---------------------------------------------------------------------------
 
-export type TimelineStore = ReturnType<typeof createTimelineStore>
+import type { StoreApi } from 'zustand'
+export type TimelineStore = StoreApi<TimelineState & TimelineActions>
 
 export function createTimelineStore(
   initial?: Partial<TimelineState>,
