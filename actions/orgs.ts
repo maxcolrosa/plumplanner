@@ -21,6 +21,7 @@ export async function createOrg(formData: FormData) {
   if (!name?.trim()) return { error: 'Organisation name is required' }
 
   let slug = generateOrgSlug(name)
+  if (!slug) return { error: 'Organisation name must contain at least one letter or number' }
 
   const { data: existing } = await supabase
     .from('orgs')
@@ -28,7 +29,7 @@ export async function createOrg(formData: FormData) {
     .eq('slug', slug)
     .single()
 
-  if (existing) slug = `${slug}-${randomBytes(3).toString('hex')}`
+  if (existing) slug = `${slug.slice(0, 43)}-${randomBytes(3).toString('hex')}`
 
   const { data: org, error: orgError } = await supabase
     .from('orgs')
@@ -47,7 +48,10 @@ export async function createOrg(formData: FormData) {
       joined_at: new Date().toISOString(),
     })
 
-  if (memberError) return { error: memberError.message }
+  if (memberError) {
+    await supabase.from('orgs').delete().eq('id', org.id)
+    return { error: memberError.message }
+  }
 
   revalidatePath('/app')
   redirect(`/${org.slug}/timeline`)
@@ -96,7 +100,9 @@ export async function inviteMember(orgId: string, email: string, role: 'admin' |
     return { error: error.message }
   }
 
-  console.log(`[DEV] Invite URL: ${process.env.NEXT_PUBLIC_APP_URL}/invite/${token}`)
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[DEV] Invite URL: ${process.env.NEXT_PUBLIC_APP_URL}/invite/${token}`)
+  }
 
   return { success: true, token }
 }
@@ -109,12 +115,15 @@ export async function acceptInvite(token: string) {
 
   const { data: member, error } = await supabase
     .from('org_members')
-    .select('id, org_id, invited_email, joined_at')
+    .select('id, org_id, joined_at, orgs!inner(slug)')
     .eq('invite_token', token)
     .single()
 
   if (error || !member) return { error: 'Invalid or expired invite link' }
   if (member.joined_at) return { error: 'This invite has already been used' }
+
+  const slug = (member.orgs as unknown as { slug: string }).slug
+  if (!slug) return { error: 'Organisation not found' }
 
   const { error: updateError } = await supabase
     .from('org_members')
@@ -127,12 +136,6 @@ export async function acceptInvite(token: string) {
 
   if (updateError) return { error: updateError.message }
 
-  const { data: org } = await supabase
-    .from('orgs')
-    .select('slug')
-    .eq('id', member.org_id)
-    .single()
-
   revalidatePath('/app')
-  redirect(`/${org?.slug}/timeline`)
+  redirect(`/${slug}/timeline`)
 }
