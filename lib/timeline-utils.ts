@@ -1,0 +1,137 @@
+export type ZoomLevel = 'day' | 'week' | 'month'
+
+export const DAY_WIDTH_PX: Record<ZoomLevel, number> = {
+  day: 80,
+  week: 20,
+  month: 5,
+}
+
+// All math uses UTC exclusively — no local-time conversions anywhere
+
+/**
+ * Convert a date to a pixel offset from the viewport start.
+ */
+export function dateToPixel(
+  date: Date,
+  viewportStart: Date,
+  dayWidthPx: number,
+): number {
+  return (
+    Math.round((date.getTime() - viewportStart.getTime()) / 86_400_000) *
+    dayWidthPx
+  )
+}
+
+/**
+ * Convert a pixel offset back to a UTC-midnight Date.
+ */
+export function pixelToDate(
+  px: number,
+  viewportStart: Date,
+  dayWidthPx: number,
+): Date {
+  return new Date(
+    viewportStart.getTime() + Math.floor(px / dayWidthPx) * 86_400_000,
+  )
+}
+
+/**
+ * Returns an array of UTC-midnight Dates covering the visible viewport.
+ */
+export function getVisibleDays(
+  viewportStart: Date,
+  totalWidthPx: number,
+  dayWidthPx: number,
+): Date[] {
+  const count = Math.ceil(totalWidthPx / dayWidthPx)
+  const days: Date[] = []
+  for (let i = 0; i < count; i++) {
+    days.push(new Date(viewportStart.getTime() + i * 86_400_000))
+  }
+  return days
+}
+
+/**
+ * Width in pixels for a task spanning startDate..endDate (inclusive).
+ */
+export function taskWidthPx(
+  startDate: Date,
+  endDate: Date,
+  dayWidthPx: number,
+): number {
+  const diff = (endDate.getTime() - startDate.getTime()) / 86_400_000
+  return (diff + 1) * dayWidthPx
+}
+
+const SHORT_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const SHORT_MONTHS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+]
+
+/**
+ * Format a date for the timeline axis at the given zoom level.
+ * day   → 'Mon 18'
+ * week  → 'W21 May'
+ * month → 'May'
+ */
+export function formatAxisDate(date: Date, zoom: ZoomLevel): string {
+  if (zoom === 'day') {
+    const dayName = SHORT_DAYS[date.getUTCDay()]
+    const dayNum = date.getUTCDate()
+    return `${dayName} ${dayNum}`
+  }
+
+  if (zoom === 'month') {
+    return SHORT_MONTHS[date.getUTCMonth()]
+  }
+
+  // week zoom → ISO week number + short month
+  const month = SHORT_MONTHS[date.getUTCMonth()]
+  const isoWeek = getISOWeekUTC(date)
+  return `W${isoWeek} ${month}`
+}
+
+/**
+ * ISO week number using UTC date math only.
+ * Uses ISO convention: week starts on Monday, Mon=1…Sun=7.
+ * Formula: Math.floor((dayOfYear1Indexed - isoDoW + 10) / 7)
+ */
+function getISOWeekUTC(date: Date): number {
+  const utcDayOfWeek = date.getUTCDay() // 0=Sun, 1=Mon, … 6=Sat
+  // ISO day of week: Mon=1, Tue=2, … Sun=7
+  const isoDoW = utcDayOfWeek === 0 ? 7 : utcDayOfWeek
+
+  const startOfYear = Date.UTC(date.getUTCFullYear(), 0, 1)
+  // 1-indexed day of year (Jan 1 = 1)
+  const dayOfYear =
+    Math.floor((date.getTime() - startOfYear) / 86_400_000) + 1
+
+  return Math.floor((dayOfYear - isoDoW + 10) / 7)
+}
+
+/**
+ * Returns the Monday of the current UTC week at UTC midnight.
+ */
+export function startOfCurrentWeekUTC(): Date {
+  const now = new Date()
+  const utcDay = now.getUTCDay() // 0=Sun, 1=Mon, … 6=Sat
+  const daysBack = utcDay === 0 ? 6 : utcDay - 1
+  return new Date(
+    Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate() - daysBack,
+    ),
+  )
+}
