@@ -145,6 +145,24 @@ describe('insertTask', () => {
     expect(fluids[1].id).toBe('a')
   })
 
+  it('does not split when elapsed hours is 0 (task just started)', () => {
+    // now === task start_date → elapsed = 0, remainder = full duration
+    // Should push (not split), so original keeps full duration_hours
+    const a = makeFluid('a', 0, {
+      start_date: MON, end_date: TUE,
+      duration_hours: 16, status: 'in_progress',
+    })
+    // now = MON (same as start_date) → elapsed = endDateToHours(Mon, Mon) = 0
+    const result = insertTask(resource, [a], makeInput('new', 'fluid'), 0, MON)
+    const fluids = result.filter(t => t.type === 'fluid').sort((a, b) => a.position! - b.position!)
+    // Should push: new at 0, 'a' at 1 — no continuation
+    expect(fluids).toHaveLength(2)
+    expect(fluids[0].id).toBe('new')
+    expect(fluids[1].id).toBe('a')
+    expect(fluids[1].duration_hours).toBe(16) // full duration preserved, not 0
+    expect(fluids[1].task_group_id).toBeNull() // not split
+  })
+
   it('fluid tasks flow around a fixed task during auto-compress', () => {
     // Fixed: Wed-Wed. Two fluid tasks starting Mon.
     // After inserting 'new' at pos 0: [new@Mon, existing@after-new]

@@ -63,7 +63,7 @@ export function insertTask(
     )
     const remainder = occupant.duration_hours - elapsed
 
-    if (!hasNoSplit && remainder > 0) {
+    if (!hasNoSplit && elapsed > 0 && remainder > 0) {
       // Split the task: update original with elapsed hours, create continuation for remainder
       const updatedOriginal: EngineTask = {
         ...occupant,
