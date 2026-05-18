@@ -127,7 +127,50 @@ describe('compress', () => {
     expect(fixedResult.end_date).toEqual(new Date('2026-05-21T00:00:00Z'))
   })
 
-  // 9. Input objects are never mutated
+  // 9. Merged task has task_group_id and segment_index cleared
+  it('clears task_group_id and segment_index after remerge', () => {
+    const fromDate = new Date('2026-05-18T00:00:00Z')
+    const seg0 = makeFluid('seg0', 0, '2026-05-18', 8, { task_group_id: 'original', segment_index: 0 })
+    const seg1 = makeFluid('seg1', 1, '2026-05-19', 8, { task_group_id: 'original', segment_index: 1 })
+    const result = compress(resource, [seg0, seg1], fromDate, true)
+    const merged = result.find(t => t.id === 'seg0')!
+    expect(merged.task_group_id).toBeNull()
+    expect(merged.segment_index).toBeNull()
+  })
+
+  // 10. Fluid task flows past two consecutive fixed tasks
+  it('flows fluid task past two consecutive fixed tasks', () => {
+    // From Tue, fixed tasks block Tue and Wed, fluid should land Thu
+    const fromDate = new Date('2026-05-19T00:00:00Z') // Tue
+    const fixed1 = makeFixed('f1', '2026-05-19', '2026-05-19') // Tue
+    const fixed2 = makeFixed('f2', '2026-05-20', '2026-05-20') // Wed
+    const a = makeFluid('a', 0, '2026-05-25', 8) // future date, 8h
+    const result = compress(resource, [a, fixed1, fixed2], fromDate, false)
+    const aResult = result.find(t => t.id === 'a')!
+    // cursor=Tue, potentialEnd=Tue → conflict with fixed1(Tue)
+    // cursor=Wed, potentialEnd=Wed → conflict with fixed2(Wed)
+    // cursor=Thu, potentialEnd=Thu → no conflict → lands Thu
+    expect(aResult.start_date).toEqual(new Date('2026-05-21T00:00:00Z')) // Thu
+    expect(aResult.end_date).toEqual(new Date('2026-05-21T00:00:00Z'))   // Thu
+  })
+
+  // 11. Fluid task duration exceeds gap between two fixed tasks
+  it('skips past a fixed task when duration exceeds the gap', () => {
+    // Fixed Tue and Thu, gap is Wed (8h). Fluid needs 16h (2 days).
+    // From Mon: cursor=Mon, 16h → potentialEnd=Tue → conflict with fixed1(Tue)
+    // cursor=Wed, 16h → potentialEnd=Thu → conflict with fixed2(Thu)
+    // cursor=Fri, 16h → potentialEnd=Mon(next) → no conflict → starts Fri
+    const fromDate = new Date('2026-05-18T00:00:00Z') // Mon
+    const fixed1 = makeFixed('f1', '2026-05-19', '2026-05-19') // Tue
+    const fixed2 = makeFixed('f2', '2026-05-21', '2026-05-21') // Thu
+    const a = makeFluid('a', 0, '2026-05-25', 16) // 16h = 2 working days
+    const result = compress(resource, [a, fixed1, fixed2], fromDate, false)
+    const aResult = result.find(t => t.id === 'a')!
+    expect(aResult.start_date).toEqual(new Date('2026-05-22T00:00:00Z')) // Fri
+    expect(aResult.end_date).toEqual(new Date('2026-05-25T00:00:00Z'))   // Mon next week
+  })
+
+  // 12. Input objects are never mutated
   it('does not mutate input task objects', () => {
     const fromDate = new Date('2026-05-18T00:00:00Z')
     const a = makeFluid('a', 0, '2026-05-25', 8) // Mon next week (has gap from fromDate)

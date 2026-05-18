@@ -29,8 +29,8 @@ export function compress(
         b.segment_index === aSegIdx + 1 &&
         b.position === (a.position ?? 0) + 1
       ) {
-        // Merge b into a: new object with combined duration
-        const merged: EngineTask = { ...a, duration_hours: a.duration_hours + b.duration_hours }
+        // Merge b into a: new object with combined duration; clear split-segment fields
+        const merged: EngineTask = { ...a, duration_hours: a.duration_hours + b.duration_hours, task_group_id: null, segment_index: null }
         fluidTasks = [
           ...fluidTasks.slice(0, i),
           merged,
