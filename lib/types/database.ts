@@ -40,6 +40,7 @@ export type Database = {
           settings?: Json
           created_at?: string
         }
+        Relationships: []
       }
       org_members: {
         Row: {
@@ -72,6 +73,7 @@ export type Database = {
           joined_at?: string | null
           created_at?: string
         }
+        Relationships: []
       }
       resources: {
         Row: {
@@ -104,6 +106,7 @@ export type Database = {
           working_week?: Json
           created_at?: string
         }
+        Relationships: []
       }
       projects: {
         Row: {
@@ -130,6 +133,7 @@ export type Database = {
           description?: string | null
           created_at?: string
         }
+        Relationships: []
       }
       tags: {
         Row: {
@@ -150,6 +154,7 @@ export type Database = {
           name?: string
           color?: string
         }
+        Relationships: []
       }
       tasks: {
         Row: {
@@ -215,6 +220,7 @@ export type Database = {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
       operation_log: {
         Row: {
@@ -244,6 +250,7 @@ export type Database = {
           client_id?: string | null
           applied_at?: string
         }
+        Relationships: []
       }
       integration_tokens: {
         Row: {
@@ -279,6 +286,7 @@ export type Database = {
           settings?: Json
           created_at?: string
         }
+        Relationships: []
       }
     }
     Views: {

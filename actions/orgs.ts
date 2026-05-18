@@ -4,22 +4,10 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { randomBytes } from 'crypto'
 import { createClient } from '@/lib/supabase/server'
+import { generateOrgSlug, validateInviteEmail } from '@/lib/orgs-utils'
 
-// ── Pure helpers (exported for testing) ──────────────────────
-
-export function generateOrgSlug(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .trim()
-    .replace(/\s+/g, '-')
-    .replace(/-{2,}/g, '-')
-    .slice(0, 50)
-}
-
-export function validateInviteEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-}
+// Re-export pure helpers so tests can import from @/actions/orgs
+export { generateOrgSlug, validateInviteEmail }
 
 // ── Server Actions ────────────────────────────────────────────
 
@@ -121,7 +109,7 @@ export async function acceptInvite(token: string) {
 
   const { data: member, error } = await supabase
     .from('org_members')
-    .select('id, org_id, invited_email, joined_at, orgs(slug)')
+    .select('id, org_id, invited_email, joined_at')
     .eq('invite_token', token)
     .single()
 
@@ -139,7 +127,12 @@ export async function acceptInvite(token: string) {
 
   if (updateError) return { error: updateError.message }
 
-  const slug = (member.orgs as { slug: string } | null)?.slug
+  const { data: org } = await supabase
+    .from('orgs')
+    .select('slug')
+    .eq('id', member.org_id)
+    .single()
+
   revalidatePath('/app')
-  redirect(`/${slug}/timeline`)
+  redirect(`/${org?.slug}/timeline`)
 }
