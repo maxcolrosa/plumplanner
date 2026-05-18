@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest'
 import { validateConstraints } from '@/lib/engine/constraints'
 import type { EngineTask } from '@/lib/engine/types'
 

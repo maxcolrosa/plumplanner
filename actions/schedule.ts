@@ -349,6 +349,16 @@ export async function compressAll(orgId: string, fromDate: string): Promise<Acti
   } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
+  const { data: member } = await supabase
+    .from('org_members')
+    .select('id')
+    .eq('org_id', orgId)
+    .eq('user_id', user.id)
+    .not('joined_at', 'is', null)
+    .single()
+
+  if (!member) return { error: 'Not a member of this organisation' }
+
   const { data: resourceRows } = await supabase
     .from('resources')
     .select('id, working_week')

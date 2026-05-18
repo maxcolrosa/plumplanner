@@ -148,7 +148,9 @@ export function insertTask(
   for (let i = atPosition; i < fluidTasks.length; i++) {
     // Skip in_progress tasks — their dates are already set
     if (fluidTasks[i].status === 'in_progress') {
-      currentCursor = addDays(fluidTasks[i].end_date, 1)
+      const afterInProgress = addDays(fluidTasks[i].end_date, 1)
+      const nowMidnight = toMidnightUTC(now)
+      currentCursor = afterInProgress > nowMidnight ? afterInProgress : nowMidnight
       continue
     }
 

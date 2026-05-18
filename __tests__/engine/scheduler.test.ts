@@ -114,6 +114,12 @@ describe('insertTask', () => {
     const original = fluids.find(t => t.id === 'a')!
     expect(original.status).toBe('in_progress')
     expect(original.duration_hours).toBe(8) // elapsed
+
+    // Date assertions: new task must start >= now (midnight UTC of TUE)
+    const nowMidnight = new Date(Date.UTC(2026, 4, 19)) // TUE midnight UTC
+    expect(newTask.start_date.getTime()).toBeGreaterThanOrEqual(nowMidnight.getTime())
+    // Continuation must start >= new task's end_date (or next working day after it)
+    expect(continuation.start_date.getTime()).toBeGreaterThanOrEqual(newTask.end_date.getTime())
   })
 
   it('pushes (does not split) an in-progress task with no_split constraint', () => {
