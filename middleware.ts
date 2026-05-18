@@ -6,6 +6,11 @@ const PROTECTED_PREFIXES = ['/app', '/onboarding', '/invite']
 const AUTH_ROUTES = ['/sign-in', '/sign-up']
 const ORG_ROUTE_PATTERN = /^\/([a-z0-9][a-z0-9-]{0,48}[a-z0-9])\//
 
+function withCookies(redirect: ReturnType<typeof NextResponse.redirect>, base: NextResponse) {
+  base.cookies.getAll().forEach(c => redirect.cookies.set(c.name, c.value))
+  return redirect
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
@@ -38,7 +43,7 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone()
     url.pathname = '/sign-in'
     url.searchParams.set('next', pathname)
-    return NextResponse.redirect(url)
+    return withCookies(NextResponse.redirect(url), supabaseResponse)
   }
 
   // Redirect authenticated users away from auth routes
@@ -46,12 +51,19 @@ export async function middleware(request: NextRequest) {
   if (user && isAuthRoute) {
     const url = request.nextUrl.clone()
     url.pathname = '/app'
-    return NextResponse.redirect(url)
+    return withCookies(NextResponse.redirect(url), supabaseResponse)
   }
 
   // Validate org membership for org-scoped routes
   const orgMatch = pathname.match(ORG_ROUTE_PATTERN)
-  if (orgMatch && user) {
+  if (orgMatch) {
+    if (!user) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/sign-in'
+      url.searchParams.set('next', pathname)
+      return withCookies(NextResponse.redirect(url), supabaseResponse)
+    }
+
     const orgSlug = orgMatch[1]
 
     const { data: member } = await supabase
@@ -65,7 +77,7 @@ export async function middleware(request: NextRequest) {
     if (!member) {
       const url = request.nextUrl.clone()
       url.pathname = '/app'
-      return NextResponse.redirect(url)
+      return withCookies(NextResponse.redirect(url), supabaseResponse)
     }
   }
 
