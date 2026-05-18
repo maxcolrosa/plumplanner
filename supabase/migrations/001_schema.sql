@@ -1,11 +1,8 @@
--- Enable extensions
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
 -- ============================================================
 -- ORGS
 -- ============================================================
 CREATE TABLE orgs (
-  id           uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name         text NOT NULL,
   slug         text NOT NULL UNIQUE,
   plan_tier    text NOT NULL DEFAULT 'starter' CHECK (plan_tier IN ('starter', 'team', 'agency')),
@@ -19,7 +16,7 @@ CREATE TABLE orgs (
 -- ORG MEMBERS
 -- ============================================================
 CREATE TABLE org_members (
-  id            uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id        uuid NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
   user_id       uuid REFERENCES auth.users(id) ON DELETE SET NULL,
   role          text NOT NULL DEFAULT 'member' CHECK (role IN ('owner', 'admin', 'member')),
@@ -36,7 +33,7 @@ CREATE INDEX idx_org_members_invite_token ON org_members(invite_token);
 -- RESOURCES
 -- ============================================================
 CREATE TABLE resources (
-  id           uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id       uuid NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
   name         text NOT NULL,
   email        text,
@@ -54,7 +51,7 @@ CREATE INDEX idx_resources_org_id ON resources(org_id);
 -- PROJECTS
 -- ============================================================
 CREATE TABLE projects (
-  id          uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id      uuid NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
   name        text NOT NULL,
   color       text NOT NULL DEFAULT '#6366f1',
@@ -67,7 +64,7 @@ CREATE INDEX idx_projects_org_id ON projects(org_id);
 -- TAGS
 -- ============================================================
 CREATE TABLE tags (
-  id     uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id     uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id uuid NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
   name   text NOT NULL,
   color  text NOT NULL DEFAULT '#6366f1'
@@ -78,7 +75,7 @@ CREATE INDEX idx_tags_org_id ON tags(org_id);
 -- TASKS
 -- ============================================================
 CREATE TABLE tasks (
-  id                    uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id                    uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id                uuid NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
   resource_id           uuid NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
   project_id            uuid REFERENCES projects(id) ON DELETE SET NULL,
@@ -117,7 +114,7 @@ CREATE TRIGGER tasks_updated_at
 -- OPERATION LOG (for real-time reconciliation)
 -- ============================================================
 CREATE TABLE operation_log (
-  id             uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id         uuid NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
   resource_id    uuid,
   operation_type text NOT NULL,
@@ -132,7 +129,7 @@ CREATE INDEX idx_operation_log_applied_at ON operation_log(applied_at);
 -- INTEGRATION TOKENS
 -- ============================================================
 CREATE TABLE integration_tokens (
-  id            uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id        uuid NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
   member_id     uuid NOT NULL REFERENCES org_members(id) ON DELETE CASCADE,
   provider      text NOT NULL
