@@ -37,6 +37,7 @@ export function TaskBlock({ task, taskAreaRef, resourceTasks }: TaskBlockProps) 
   const dayWidthPx = DAY_WIDTH_PX[zoomLevel]
 
   const taskRef = useRef<HTMLDivElement>(null)
+  const resizeDaysRef = useRef<number | null>(null)
   const [shaking, setShaking] = useState(false)
   const [resizeDays, setResizeDays] = useState<number | null>(null)
 
@@ -132,6 +133,7 @@ export function TaskBlock({ task, taskAreaRef, resourceTasks }: TaskBlockProps) 
 
     const onMove = (ev: PointerEvent) => {
       const days = Math.max(1, Math.round((ev.clientX - taskLeft) / dayWidthPx))
+      resizeDaysRef.current = days
       setResizeDays(days)
     }
 
@@ -139,16 +141,21 @@ export function TaskBlock({ task, taskAreaRef, resourceTasks }: TaskBlockProps) 
       document.removeEventListener('pointermove', onMove)
       document.removeEventListener('pointerup', onUp)
 
-      setResizeDays((currentDays) => {
-        const finalDays = currentDays ?? Math.max(1, Math.round(width / dayWidthPx))
-        // Fire-and-forget async call after clearing preview
-        adjustTask(task.id, { duration_hours: finalDays * 8 }).then((result) => {
-          if (result && 'tasks' in result) {
-            store.setTasks(task.resource_id, result.tasks)
-          }
-        })
-        return null
-      })
+      const finalDays = resizeDaysRef.current ?? Math.max(1, Math.round(width / dayWidthPx))
+      resizeDaysRef.current = null
+
+      try {
+        const result = await adjustTask(task.id, { duration_hours: finalDays * 8 })
+        if (result && 'tasks' in result) {
+          store.setTasks(task.resource_id, result.tasks)
+        } else {
+          setShaking(true)
+        }
+      } catch {
+        setShaking(true)
+      } finally {
+        setResizeDays(null)
+      }
     }
 
     document.addEventListener('pointermove', onMove)
