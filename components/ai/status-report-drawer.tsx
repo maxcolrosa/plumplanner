@@ -54,7 +54,7 @@ export function StatusReportDrawer({ open, onClose, orgId }: StatusReportDrawerP
   }
 
   return (
-    <Sheet open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose() }}>
+    <Sheet open={open} onOpenChange={(isOpen) => { if (!isOpen) { setState('idle'); setReportText(''); onClose() } }}>
       <SheetContent side="right" className="w-[480px] flex flex-col">
         <SheetHeader>
           <SheetTitle>Status Report</SheetTitle>
