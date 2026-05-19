@@ -9,7 +9,6 @@ import type { EngineTask } from '@/lib/engine/types'
 interface Props {
   task: EngineTask
   fromResourceId: string
-  orgId: string
 }
 
 export function ResourceTaskCard({ task, fromResourceId }: Props) {

@@ -12,10 +12,9 @@ const ICONS = {
 
 interface Props {
   resource: { id: string; name: string; icon_type: string }
-  orgId: string
 }
 
-export function ResourceColumn({ resource, orgId }: Props) {
+export function ResourceColumn({ resource }: Props) {
   const tasks = useResourcesStore(s => s.tasks[resource.id] ?? [])
   const fluidTasks = tasks
     .filter(t => t.type === 'fluid')
@@ -40,7 +39,6 @@ export function ResourceColumn({ resource, orgId }: Props) {
             key={task.id}
             task={task}
             fromResourceId={resource.id}
-            orgId={orgId}
           />
         ))}
       </div>

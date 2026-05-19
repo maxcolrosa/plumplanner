@@ -82,7 +82,6 @@ export default async function ResourcesPage({ params }: Props) {
     <ResourcesView
       resources={typedResources}
       initialTasks={tasksByResource}
-      orgId={org.id}
     />
   )
 }
