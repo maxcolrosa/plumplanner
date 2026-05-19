@@ -8,16 +8,16 @@ Plum Planner is a real-time team scheduling SaaS for agencies and small teams (5
 
 Full spec: `docs/superpowers/plans/2026-05-18-01-foundation.md` (Plan 1: Foundation)
 Product spec: `/Users/maxdennis/.claude/plans/whimsical-drifting-quiche.md`
+Plan 3 (Timeline UI) spec: `/Users/maxdennis/.claude/plans/greedy-brewing-shamir.md`
 
 ## Status
 
-Pre-implementation. The Next.js app has not been scaffolded yet. Start with Plan 1.
+**Plans 1 (Foundation), 2 (Scheduling Engine), and 3 (Timeline UI) are complete.** App is scaffolded, database schema + RLS are applied, scheduling engine is fully tested, and the interactive timeline grid (drag, resize, realtime, optimistic updates, add-task/add-resource dialogs) is implemented. Plan 4 (Real-time + Views) is next.
 
 ## Commands
 
-Once scaffolded (Plan 1, Task 1):
-
 ```bash
+# From /Users/maxdennis/Desktop/plumplanner
 pnpm dev          # dev server with Turbopack
 pnpm build        # production build
 pnpm test         # Vitest unit tests (lib/engine/ is the critical path)
@@ -38,7 +38,7 @@ pnpm exec supabase gen types typescript --linked > lib/types/database.ts
 
 ## Stack
 
-- **Next.js 15** App Router, TypeScript, `pnpm`
+- **Next.js 16** App Router, TypeScript, `pnpm`
 - **Supabase** — Postgres + Auth + Realtime
 - **Tailwind CSS** + **shadcn/ui** + **Framer Motion**
 - **Zustand** for client UI state (timeline viewport, selection, drag)
@@ -81,6 +81,21 @@ Key files:
 4. A task with `no_split` constraint falls back to push (not split) on interruption
 5. `position` is only set on fluid tasks; Fixed tasks have `position = null`
 
+### Timeline UI (`components/timeline/`)
+
+The primary view. DOM-based renderer (not Canvas) with Zustand v5 for client state.
+
+Key files:
+- `lib/timeline-utils.ts` — UTC date↔pixel math (`dateToPixel`, `pixelToDate`, `taskWidthPx`, `formatAxisDate`, `startOfCurrentWeekUTC`). All math uses UTC — never local-time getDay/getDate/getMonth.
+- `lib/store/timeline.ts` — Zustand v5 vanilla store via `createStore` (not `create`). One instance per component tree via `useMemo`, provided via `TimelineStoreContext`. Fine-grained selectors only — never `s => s`.
+- `components/timeline/timeline-view.tsx` — Client root; mounts store + Realtime subscription. Optimistic sync guard: skips `setAllTasks` if `preOptimisticTasks !== null`.
+- `components/timeline/timeline-grid.tsx` — Scrollable grid with sticky date axis and today line.
+- `components/timeline/task-block.tsx` — Drag (Framer Motion, fluid only) + resize (raw pointer events on document). `inflightRef` prevents concurrent drags; `isInteractingRef` prevents drag/resize race.
+- `components/timeline/add-task-dialog.tsx` — Create task form (name, resource, type, duration, start date for fixed, project).
+- `components/timeline/create-resource-dialog.tsx` — Create resource form (name + icon type).
+- `actions/resources.ts` — `createResource` server action.
+- `actions/schedule.ts` — includes `reorderFluidTask` added in Plan 3.
+
 ### Real-time Collaboration
 
 Server Actions are the single source of truth — they run the engine, persist the result, then broadcast. Clients never push raw task mutations directly to Supabase.
@@ -115,11 +130,12 @@ Plans are in `docs/superpowers/plans/`. Work through them in order:
 
 | Plan | File | Status |
 |------|------|--------|
-| 1: Foundation | `2026-05-18-01-foundation.md` | Ready to start |
-| 2: Scheduling Engine | *(not yet written)* | After Plan 1 |
-| 3: Timeline UI | *(not yet written)* | After Plan 2 |
+| 1: Foundation | `2026-05-18-01-foundation.md` | ✅ Complete |
+| 2: Scheduling Engine | `2026-05-18-02-scheduling-engine.md` | ✅ Complete |
+| 3: Timeline UI | `/Users/maxdennis/.claude/plans/greedy-brewing-shamir.md` | ✅ Complete |
 | 4: Real-time + Views | *(not yet written)* | After Plan 3 |
 | 5: AI + Billing | *(not yet written)* | After Plan 4 |
 | 6: Integrations | *(not yet written)* | After Plan 5 |
+| 7: Design/UI Rebuild | *(not yet written)* | After Plan 6 |
 
 When starting a plan, use the `superpowers:executing-plans` or `superpowers:subagent-driven-development` skill.
