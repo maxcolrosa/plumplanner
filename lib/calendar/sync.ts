@@ -39,6 +39,7 @@ async function getValidToken(
     })
     .eq('member_id', token.member_id)
     .eq('provider', token.provider)
+    .eq('org_id', token.org_id)
 
   return refreshed.accessToken
 }

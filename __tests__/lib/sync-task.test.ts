@@ -130,4 +130,41 @@ describe('syncTaskToCalendar', () => {
     // Should NOT throw even though createEvent failed
     await expect(syncTaskToCalendar(task, 'create')).resolves.toBeUndefined()
   })
+
+  it('calls createEvent and upserts calendar_events row on successful create', async () => {
+    const { createEvent } = await import('@/lib/calendar/google')
+    const task = { ...baseTask, calendar_sync_enabled: true }
+
+    const resourceQuery = makeQuery({ user_id: 'user-1' })
+    const memberQuery = makeQuery({ id: 'member-1' })
+    const futureExpiry = new Date(Date.now() + 3_600_000).toISOString()
+    const tokensData = [{
+      provider: 'google_calendar',
+      access_token: 'access-tok',
+      refresh_token: null,
+      expires_at: futureExpiry,
+      member_id: 'member-1',
+      org_id: 'org-1',
+    }]
+    const tokensFetch = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockResolvedValue({ data: tokensData, error: null }),
+    }
+    const calEvQuery = makeQuery(null)  // no existing event
+    const upsertQuery = { upsert: vi.fn().mockResolvedValue({ error: null }) }
+
+    mockFrom
+      .mockReturnValueOnce(resourceQuery)
+      .mockReturnValueOnce(memberQuery)
+      .mockReturnValueOnce(tokensFetch)
+      .mockReturnValueOnce(calEvQuery)   // calendar_events select
+      .mockReturnValueOnce(upsertQuery)  // calendar_events upsert
+
+    await syncTaskToCalendar(task, 'create')
+
+    expect(vi.mocked(createEvent)).toHaveBeenCalledOnce()
+    expect(upsertQuery.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ task_id: 'task-1', provider: 'google_calendar', sync_error: false })
+    )
+  })
 })
