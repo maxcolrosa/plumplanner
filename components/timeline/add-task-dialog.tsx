@@ -64,31 +64,41 @@ export function AddTaskDialog({
     e.preventDefault()
     setError(null)
 
+    const parsedDuration = Number(durationHours)
+    if (!parsedDuration || parsedDuration <= 0) {
+      setError('Duration must be greater than 0')
+      return
+    }
+
     const fluidTasksForResource = (tasks[resourceId] ?? []).filter(
       (t) => t.type === 'fluid'
     )
 
     startTransition(async () => {
-      const result = await insertTask({
-        org_id: orgId,
-        resource_id: resourceId,
-        atPosition: fluidTasksForResource.length,
-        name,
-        type,
-        duration_hours: durationHours,
-        start_date: type === 'fixed' ? startDate : undefined,
-        project_id: projectId ?? undefined,
-      })
+      try {
+        const result = await insertTask({
+          org_id: orgId,
+          resource_id: resourceId,
+          atPosition: fluidTasksForResource.length,
+          name,
+          type,
+          duration_hours: parsedDuration,
+          start_date: type === 'fixed' ? startDate : undefined,
+          project_id: projectId ?? undefined,
+        })
 
-      if ('error' in result) {
-        setError(result.error)
-        return
+        if ('error' in result) {
+          setError(result.error)
+          return
+        }
+
+        setTasks(resourceId, result.tasks)
+        setViolations(result.violations)
+        onClose()
+        toast.success('Task added')
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Unexpected error')
       }
-
-      setTasks(resourceId, result.tasks)
-      setViolations(result.violations)
-      onClose()
-      toast.success('Task added')
     })
   }
 
@@ -132,8 +142,8 @@ export function AddTaskDialog({
 
           {/* Type */}
           <div className="flex flex-col gap-1.5">
-            <Label>Type</Label>
-            <div className="flex items-center gap-4">
+            <Label id="type-label">Type</Label>
+            <div role="group" aria-labelledby="type-label" className="flex items-center gap-4">
               <label className="flex items-center gap-1.5 text-sm cursor-pointer">
                 <input
                   type="radio"
@@ -203,13 +213,20 @@ export function AddTaskDialog({
             </select>
           </div>
 
+          {/* No resources hint */}
+          {resources.length === 0 && (
+            <p className="text-sm text-muted-foreground">
+              Create a resource first before adding tasks.
+            </p>
+          )}
+
           {/* Error */}
           {error && (
             <p className="text-sm text-destructive">{error}</p>
           )}
 
           <DialogFooter>
-            <Button type="submit" disabled={isPending || !name.trim()}>
+            <Button type="submit" disabled={isPending || !name.trim() || !resourceId}>
               {isPending ? 'Adding…' : 'Add Task'}
             </Button>
           </DialogFooter>

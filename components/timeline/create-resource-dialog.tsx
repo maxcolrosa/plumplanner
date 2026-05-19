@@ -54,16 +54,20 @@ export function CreateResourceDialog({
     setError(null)
 
     startTransition(async () => {
-      const result = await createResource(orgId, name, iconType)
+      try {
+        const result = await createResource(orgId, name, iconType)
 
-      if ('error' in result) {
-        setError(result.error)
-        return
+        if ('error' in result) {
+          setError(result.error)
+          return
+        }
+
+        onClose()
+        router.refresh()
+        toast.success('Resource created')
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Unexpected error')
       }
-
-      onClose()
-      router.refresh()
-      toast.success('Resource created')
     })
   }
 
@@ -90,8 +94,8 @@ export function CreateResourceDialog({
 
           {/* Icon type */}
           <div className="flex flex-col gap-1.5">
-            <Label>Type</Label>
-            <div className="flex items-center gap-4">
+            <Label id="icon-type-label">Type</Label>
+            <div role="group" aria-labelledby="icon-type-label" className="flex items-center gap-4">
               {ICON_OPTIONS.map(({ value, label }) => (
                 <label key={value} className="flex items-center gap-1.5 text-sm cursor-pointer">
                   <input
