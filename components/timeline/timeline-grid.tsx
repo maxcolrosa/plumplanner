@@ -62,8 +62,8 @@ export function TimelineGrid({ resources, orgId }: TimelineGridProps) {
         <div className="relative">
           {/* Today line */}
           <div
-            className="absolute top-0 bottom-0 w-0.5 bg-timeline-today pointer-events-none z-10"
-            style={{ left: todayLineLeft }}
+            className="absolute top-0 bottom-0 w-px bg-timeline-today pointer-events-none z-10"
+            style={{ left: todayLineLeft, opacity: 0.3 }}
           />
           {resources.map((resource) => (
             <ResourceRow key={resource.id} resource={resource} />

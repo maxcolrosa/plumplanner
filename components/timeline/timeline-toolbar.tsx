@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useTimelineStore } from '@/lib/store/timeline'
-import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { addUTCDays } from '@/lib/timeline-utils'
 import type { ZoomLevel } from '@/lib/timeline-utils'
 import type { WorkingWeek } from '@/lib/types'
@@ -79,52 +79,66 @@ export function TimelineToolbar({ resources, projects, orgId }: TimelineToolbarP
   const step = ZOOM_STEPS[zoomLevel]
 
   return (
-    <div className="flex items-center justify-between px-4 py-2 border-b gap-4 shrink-0">
-      {/* Nav section */}
-      <div className="flex items-center gap-1">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setViewportStart(addUTCDays(viewportStart, -step))}
-          aria-label="Previous period"
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        <Button variant="ghost" size="sm" onClick={() => scrollToCurrentWeek()}>
-          Today
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setViewportStart(addUTCDays(viewportStart, step))}
-          aria-label="Next period"
-        >
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </div>
-
-      {/* Zoom section */}
-      <div className="flex items-center gap-1">
-        {ZOOM_LABELS.map(({ value, label }) => (
-          <Button
-            key={value}
-            variant={zoomLevel === value ? 'secondary' : 'ghost'}
-            size="sm"
-            onClick={() => setZoomLevel(value)}
+    <>
+      <div className="flex items-center gap-3 px-4 h-12 border-b border-border bg-background shrink-0">
+        {/* Nav group */}
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setViewportStart(addUTCDays(viewportStart, -step))}
+            className="flex items-center justify-center w-7 h-7 rounded text-muted-foreground hover:bg-plum-surface-raised hover:text-foreground transition-colors duration-150"
+            title="Previous period"
           >
-            {label}
-          </Button>
-        ))}
-      </div>
+            <ChevronLeft className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={scrollToCurrentWeek}
+            className="px-2 h-7 rounded text-[12px] font-medium text-muted-foreground hover:bg-plum-surface-raised hover:text-foreground transition-colors duration-150"
+          >
+            Today
+          </button>
+          <button
+            onClick={() => setViewportStart(addUTCDays(viewportStart, step))}
+            className="flex items-center justify-center w-7 h-7 rounded text-muted-foreground hover:bg-plum-surface-raised hover:text-foreground transition-colors duration-150"
+            title="Next period"
+          >
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
 
-      {/* Actions section */}
-      <div className="flex items-center gap-2">
-        <Button variant="outline" size="sm" onClick={() => setAddResourceOpen(true)}>
+        {/* Zoom pills */}
+        <div className="flex items-center bg-muted rounded-[var(--radius)] p-0.5 gap-0.5">
+          {ZOOM_LABELS.map(({ value, label }) => (
+            <button
+              key={value}
+              onClick={() => setZoomLevel(value)}
+              className={cn(
+                'px-2.5 h-6 rounded text-[11px] font-medium transition-colors duration-150',
+                zoomLevel === value
+                  ? 'bg-card text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex-1" />
+
+        {/* Actions */}
+        <button
+          onClick={() => setAddResourceOpen(true)}
+          className="h-7 px-3 rounded-[var(--radius)] border border-border text-[12px] font-medium text-muted-foreground hover:bg-plum-surface-raised hover:text-foreground transition-colors duration-150"
+        >
           + Add Resource
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => { setPrefillValues(null); setAddTaskOpen(true) }}>
+        </button>
+        <button
+          onClick={() => { setPrefillValues(null); setAddTaskOpen(true) }}
+          className="h-7 px-3 rounded-[var(--radius)] bg-plum-cta text-white text-[12px] font-semibold transition-[filter] duration-150 hover:brightness-110"
+          style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,.10)' }}
+        >
           + Add Task
-        </Button>
+        </button>
       </div>
 
       <AddTaskDialog
@@ -140,6 +154,6 @@ export function TimelineToolbar({ resources, projects, orgId }: TimelineToolbarP
         onClose={() => setAddResourceOpen(false)}
         orgId={orgId}
       />
-    </div>
+    </>
   )
 }

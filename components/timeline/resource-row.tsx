@@ -33,9 +33,9 @@ export function ResourceRow({ resource }: ResourceRowProps) {
   const Icon = ICON_MAP[resource.icon_type]
 
   return (
-    <div className="flex border-b">
+    <div className="flex border-b border-border last:border-b-0">
       {/* Resource name column — sticky left */}
-      <div className="w-48 shrink-0 sticky left-0 z-20 bg-background flex items-center gap-2 px-3 text-sm font-medium h-16 border-r">
+      <div className="w-48 shrink-0 sticky left-0 z-20 bg-background flex items-center gap-2 px-3 border-r border-border/50">
         <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
         <span className="truncate">{resource.name}</span>
       </div>

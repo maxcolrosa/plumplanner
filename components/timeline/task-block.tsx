@@ -86,8 +86,8 @@ export function TaskBlock({ task, taskAreaRef, resourceTasks, calendarAvailable 
 
   const baseClasses =
     task.type === 'fixed'
-      ? 'bg-timeline-fixed/20 border-2 border-timeline-fixed rounded'
-      : 'bg-timeline-fluid/20 border border-timeline-fluid rounded cursor-grab'
+      ? 'bg-timeline-fixed/20 border border-timeline-fixed-border text-timeline-fixed rounded'
+      : 'bg-timeline-fluid/20 border border-timeline-fluid-border text-timeline-fluid rounded cursor-grab'
 
   const continuationClasses = isContinuation ? 'border-l-2 border-dashed' : ''
 
@@ -231,7 +231,7 @@ export function TaskBlock({ task, taskAreaRef, resourceTasks, calendarAvailable 
         {task.name}
       </span>
       {hasViolation && (
-        <AlertTriangle className={`absolute top-0.5 h-3 w-3 text-timeline-violation ${hasSyncError ? 'right-11' : 'right-8'}`} />
+        <AlertTriangle className={`absolute top-0.5 text-[9px] text-amber-400 ${hasSyncError ? 'right-11' : 'right-8'}`} />
       )}
       {hasSyncError && (
         <CalendarX className="absolute top-0.5 right-8 h-3 w-3 text-amber-500" />

@@ -36,9 +36,11 @@ export function DateAxis() {
             key={date.getTime()}
             style={{ width: dayWidthPx, minWidth: dayWidthPx }}
             className={[
-              'flex items-center justify-center text-xs truncate border-r border-border/40',
-              isWeekend ? 'bg-muted/50' : '',
-              isToday ? 'bg-timeline-today/10 text-timeline-today font-medium' : 'text-muted-foreground',
+              'flex items-center justify-center text-[10px] truncate border-r border-border/30',
+              isWeekend ? 'bg-muted/30' : '',
+              isToday
+                ? 'bg-plum-accent-subtle/60 text-plum-accent font-semibold'
+                : 'text-muted-foreground',
             ]
               .filter(Boolean)
               .join(' ')}
