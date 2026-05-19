@@ -39,7 +39,7 @@ export function TaskContextMenu({
   function handleCalendarToggle() {
     startTransition(async () => {
       const result = await toggleCalendarSync(taskId, !calendarSyncEnabled)
-      if (result.error) {
+      if ('error' in result && result.error) {
         toast.error(result.error)
         return
       }
@@ -57,7 +57,7 @@ export function TaskContextMenu({
   function handleRetry() {
     startTransition(async () => {
       const result = await retryCalendarSync(taskId)
-      if (result.error) {
+      if ('error' in result && result.error) {
         toast.error(result.error)
         return
       }
