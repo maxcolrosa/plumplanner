@@ -6,6 +6,8 @@ import { CalendarDays, Users, BarChart3, Settings, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { signOut } from '@/actions/auth'
 import { Button } from '@/components/ui/button'
+import { usePresence } from '@/hooks/use-presence'
+import { WhoIsOnline } from '@/components/presence/who-is-online'
 
 interface NavItem {
   label: string
@@ -16,10 +18,14 @@ interface NavItem {
 interface SidebarNavProps {
   orgSlug: string
   orgName: string
+  orgId: string
+  userId: string
+  userName: string
 }
 
-export function SidebarNav({ orgSlug, orgName }: SidebarNavProps) {
+export function SidebarNav({ orgSlug, orgName, orgId, userId, userName }: SidebarNavProps) {
   const pathname = usePathname()
+  const onlineUsers = usePresence(orgId, userId, userName)
 
   const items: NavItem[] = [
     { label: 'Timeline', href: `/${orgSlug}/timeline`, icon: CalendarDays },
@@ -55,6 +61,8 @@ export function SidebarNav({ orgSlug, orgName }: SidebarNavProps) {
           )
         })}
       </nav>
+
+      <WhoIsOnline users={onlineUsers} />
 
       <div className="p-2 border-t border-sidebar-border">
         <form action={signOut}>
