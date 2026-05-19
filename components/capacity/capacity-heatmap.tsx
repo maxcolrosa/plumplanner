@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import type { CapacityCell } from '@/lib/capacity-utils'
 
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
@@ -36,11 +37,8 @@ export function CapacityHeatmap({ weekDays, resources, cells }: Props) {
 
       {/* Resource rows */}
       {resources.map(resource => (
-        <>
-          <div
-            key={`name-${resource.id}`}
-            className="flex items-center text-xs text-foreground truncate pr-2 h-9"
-          >
+        <Fragment key={resource.id}>
+          <div className="flex items-center text-xs text-foreground truncate pr-2 h-9">
             {resource.name}
           </div>
           {[0, 1, 2, 3, 4].map(dayIndex => {
@@ -61,7 +59,7 @@ export function CapacityHeatmap({ weekDays, resources, cells }: Props) {
               </div>
             )
           })}
-        </>
+        </Fragment>
       ))}
     </div>
   )

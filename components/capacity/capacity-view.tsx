@@ -4,21 +4,22 @@ import { useRouter } from 'next/navigation'
 import { formatWeekParam } from '@/lib/capacity-utils'
 
 interface Props {
-  weekStart: Date
+  weekStart: Date | string
   orgSlug: string
   children: React.ReactNode
 }
 
 export function CapacityView({ weekStart, orgSlug, children }: Props) {
   const router = useRouter()
+  const weekStartDate = weekStart instanceof Date ? weekStart : new Date(weekStart)
 
   function navigate(deltaDays: number) {
-    const next = new Date(weekStart)
+    const next = new Date(weekStartDate)
     next.setUTCDate(next.getUTCDate() + deltaDays)
     router.push(`/${orgSlug}/capacity?week=${formatWeekParam(next)}`)
   }
 
-  const label = weekStart.toLocaleDateString('en-GB', {
+  const label = weekStartDate.toLocaleDateString('en-GB', {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
