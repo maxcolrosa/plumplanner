@@ -12,6 +12,7 @@ import { validateConstraints } from '@/lib/engine/constraints'
 import type { EngineTask, EngineResource, TaskInput, ConstraintViolation } from '@/lib/engine/types'
 import type { WorkingWeek, TaskConstraint, ExternalRef } from '@/lib/types'
 import { parseDateStr, toTask as toEngineTask } from './schedule-helpers'
+import { syncTaskToCalendar } from '@/lib/calendar/sync'
 
 // ---------------------------------------------------------------------------
 // Date conversion helpers — module-level sync functions, NOT exported as
@@ -185,6 +186,9 @@ export async function insertTask(input: InsertTaskInput): Promise<ActionResult> 
   )
   if (error) return { error }
 
+  const insertedTask = result.find((t) => t.id === taskInput.id)
+  if (insertedTask) await syncTaskToCalendar(insertedTask, 'create')
+
   revalidatePath('/[orgSlug]/timeline', 'page')
   return { tasks: result, violations }
 }
@@ -213,6 +217,11 @@ export async function deleteTask(taskId: string): Promise<ActionResult> {
 
   const result = engineDeleteTask(tasks, taskId)
   const violations = validateConstraints(result)
+
+  // Sync to calendar BEFORE persist — calendar_events has ON DELETE CASCADE on task_id,
+  // so the event_id row would be wiped if the DB delete runs first.
+  const deletedTask = tasks.find((t) => t.id === taskId)
+  if (deletedTask) await syncTaskToCalendar(deletedTask, 'delete')
 
   const { error } = await persistAndBroadcast(
     admin,
@@ -271,6 +280,9 @@ export async function adjustTask(
     result
   )
   if (error) return { error }
+
+  const adjustedTask = result.find((t) => t.id === taskId)
+  if (adjustedTask) await syncTaskToCalendar(adjustedTask, 'update')
 
   revalidatePath('/[orgSlug]/timeline', 'page')
   return { tasks: result, violations }
@@ -428,6 +440,9 @@ export async function reassignTask(
   // Write target second; source is already written — client should refresh both slices on error
   const targetResult = await persistAndBroadcast(admin, supabase, orgId, toResourceId, targetTasks, newTargetTasks)
   if (targetResult.error) return { error: targetResult.error }
+
+  const reassignedTask = newTargetTasks.find((t) => t.id === taskId)
+  if (reassignedTask) await syncTaskToCalendar(reassignedTask, 'update')
 
   revalidatePath('/[orgSlug]/timeline', 'page')
   return { sourceTasks: newSourceTasks, targetTasks: newTargetTasks, violations }
