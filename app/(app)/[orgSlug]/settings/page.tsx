@@ -63,33 +63,15 @@ export default async function SettingsPage({ params, searchParams }: Props) {
   if (isAdmin) {
     const { data: allResources } = await admin
       .from('resources')
-      .select('id, name, user_id')
+      .select('id, name, email, user_id')
       .eq('org_id', orgId)
       .eq('icon_type', 'person')
 
-    const linkedUserIds = (allResources ?? [])
-      .map((r: { user_id: string | null }) => r.user_id)
-      .filter(Boolean) as string[]
-
-    const { data: linkedMembers } = linkedUserIds.length > 0
-      ? await admin
-          .from('org_members')
-          .select('user_id, users:user_id(email)')
-          .eq('org_id', orgId)
-          .in('user_id', linkedUserIds)
-      : { data: [] }
-
-    const userEmailMap = new Map(
-      ((linkedMembers ?? []) as { user_id: string; users: { email: string } | null }[]).map(
-        (m) => [m.user_id, m.users?.email ?? null]
-      )
-    )
-
     allResourceLinks = (allResources ?? []).map(
-      (r: { id: string; name: string; user_id: string | null }) => ({
+      (r: { id: string; name: string; email: string | null; user_id: string | null }) => ({
         resourceId: r.id,
         resourceName: r.name,
-        userEmail: r.user_id ? (userEmailMap.get(r.user_id) ?? null) : null,
+        userEmail: r.email ?? null,
       })
     )
   }
@@ -112,7 +94,6 @@ export default async function SettingsPage({ params, searchParams }: Props) {
         outlookConnected={connectedProviders.has('outlook')}
         myResourceId={myResourceId}
         resources={resourceOptions}
-        resourceUserId={user.id}
         isAdmin={isAdmin}
         allResourceLinks={allResourceLinks}
       />

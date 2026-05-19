@@ -57,7 +57,6 @@ export function createTimelineStore(
     preOptimisticTasks: null,
     connectedUserIds: initial?.connectedUserIds ?? new Set<string>(),
     taskSyncErrors: initial?.taskSyncErrors ?? new Set<string>(),
-    // spread caller overrides (excluding Set fields handled above)
     ...initial,
 
     // --- actions ---

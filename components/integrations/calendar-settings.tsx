@@ -12,7 +12,6 @@ interface Props {
   outlookConnected: boolean
   myResourceId: string | null
   resources: Array<{ id: string; name: string }>
-  resourceUserId: string | null
   allResourceLinks?: Array<{ resourceId: string; resourceName: string; userEmail: string | null }>
   isAdmin: boolean
 }
