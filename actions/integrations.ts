@@ -108,11 +108,15 @@ export async function disconnectCalendar(
     }
   }
 
-  await admin
-    .from('calendar_events')
-    .delete()
-    .eq('user_id', user.id)
-    .eq('provider', provider)
+  const taskIds = ((calEvents ?? []) as { event_id: string; task_id: string }[]).map((e) => e.task_id)
+  if (taskIds.length > 0) {
+    await admin
+      .from('calendar_events')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('provider', provider)
+      .in('task_id', taskIds)
+  }
 
   await admin
     .from('integration_tokens')
@@ -210,7 +214,7 @@ export async function retryCalendarSync(taskId: string): Promise<{ error?: strin
     .update({ sync_error: false })
     .eq('task_id', taskId)
 
-  const { data: taskRow } = await admin.from('tasks').select('*').eq('id', taskId).single()
+  const { data: taskRow } = await supabase.from('tasks').select('*').eq('id', taskId).single()
   if (!taskRow) return { error: 'Task not found' }
 
   const { syncTaskToCalendar: sync } = await import('@/lib/calendar/sync')
