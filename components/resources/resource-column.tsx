@@ -25,15 +25,19 @@ export function ResourceColumn({ resource }: Props) {
   return (
     <div
       data-resource-id={resource.id}
-      className="flex flex-col w-56 shrink-0 rounded-lg border border-border bg-muted/20 p-3 min-h-48"
+      className="flex flex-col w-56 shrink-0 rounded-xl border border-border bg-card p-3 min-h-[12rem]"
     >
-      <div className="flex items-center gap-2 mb-3">
-        <Icon className="w-4 h-4 text-muted-foreground shrink-0" />
-        <span className="font-medium text-sm text-foreground truncate">{resource.name}</span>
-        <span className="ml-auto text-xs text-muted-foreground">{fluidTasks.length}</span>
+      {/* Column header */}
+      <div className="flex items-center gap-2 mb-3 pb-2.5 border-b border-border">
+        <Icon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+        <span className="font-semibold text-[13px] text-foreground truncate flex-1">{resource.name}</span>
+        <span className="text-[10px] font-bold text-plum-accent bg-plum-accent-subtle px-1.5 py-0.5 rounded-[5px]">
+          {fluidTasks.length}
+        </span>
       </div>
 
-      <div className="flex flex-col gap-2 flex-1">
+      {/* Fluid tasks */}
+      <div className="flex flex-col gap-1.5 flex-1">
         {fluidTasks.map(task => (
           <ResourceTaskCard
             key={task.id}
@@ -41,19 +45,26 @@ export function ResourceColumn({ resource }: Props) {
             fromResourceId={resource.id}
           />
         ))}
+        {fluidTasks.length === 0 && (
+          <div className="flex-1 flex items-center justify-center border border-dashed border-border rounded-lg min-h-[5rem]">
+            <span className="text-[11px] text-muted-foreground">No tasks</span>
+          </div>
+        )}
       </div>
 
+      {/* Fixed tasks section */}
       {fixedTasks.length > 0 && (
         <>
-          <div className="mt-3 mb-1.5 text-xs text-muted-foreground uppercase tracking-wide border-t border-border pt-2">
+          <div className="mt-3 mb-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-t border-border pt-2.5">
             Fixed
           </div>
           {fixedTasks.map(task => (
             <div
               key={task.id}
-              className="rounded border border-blue-500/30 bg-blue-500/10 px-2 py-1.5 text-xs text-foreground mb-1"
+              className="rounded-[6px] border border-timeline-fixed-border bg-timeline-fixed/10 px-2 py-1.5 text-[11px] text-timeline-fixed mb-1 flex items-center gap-1.5"
             >
-              🔒 {task.name}
+              <span className="text-[10px]">🔒</span>
+              <span className="truncate">{task.name}</span>
             </div>
           ))}
         </>

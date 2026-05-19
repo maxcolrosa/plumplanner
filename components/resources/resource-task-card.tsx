@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import { GripVertical } from 'lucide-react'
 import { useResourcesStore } from '@/lib/store/resources'
 import { reassignTask, reorderFluidTask } from '@/actions/schedule'
 import type { EngineTask } from '@/lib/engine/types'
@@ -105,10 +106,11 @@ export function ResourceTaskCard({ task, fromResourceId }: Props) {
       transition={shaking ? { duration: 0.4 } : undefined}
       onDragEnd={handleDragEnd}
       whileDrag={{ opacity: 0.8, scale: 1.02, zIndex: 50 }}
-      className="rounded border border-primary/30 bg-primary/10 px-2 py-2 text-xs cursor-grab active:cursor-grabbing select-none"
+      className="rounded-[var(--radius)] border border-border bg-card px-2.5 py-2 text-[12px] text-foreground font-medium flex items-center gap-2 group cursor-grab active:cursor-grabbing transition-colors duration-150"
     >
-      <div className="font-medium text-foreground truncate">{task.name}</div>
-      <div className="text-muted-foreground mt-0.5">{task.duration_hours}h</div>
+      <GripVertical className="w-3 h-3 text-muted-foreground shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+      <span className="truncate text-foreground flex-1">{task.name}</span>
+      <span className="text-muted-foreground shrink-0">{task.duration_hours}h</span>
     </motion.div>
   )
 }
