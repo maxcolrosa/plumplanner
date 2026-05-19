@@ -23,6 +23,7 @@ export default async function OrgLayout({ children, params }: Props) {
   ])
 
   if (!org) notFound()
+  if (!user) redirect('/sign-in')
 
   // Subscription gate — skip when already on the subscribe page
   const headersList = await headers()

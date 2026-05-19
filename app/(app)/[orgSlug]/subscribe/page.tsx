@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 
 interface Props {
   params: Promise<{ orgSlug: string }>
+  searchParams: Promise<{ error?: string }>
 }
 
 const PLANS = [
@@ -31,8 +32,9 @@ const PLANS = [
   },
 ] as const
 
-export default async function SubscribePage({ params }: Props) {
+export default async function SubscribePage({ params, searchParams }: Props) {
   const { orgSlug } = await params
+  const { error } = await searchParams
   const supabase = await createClient()
   const { data: org } = await supabase
     .from('orgs')
@@ -52,6 +54,10 @@ export default async function SubscribePage({ params }: Props) {
         Subscribe to start using Plum Planner for{' '}
         <span className="font-medium text-foreground">{org.name}</span>.
       </p>
+
+      {error === 'checkout_failed' && (
+        <p className="text-sm text-destructive mb-4">Failed to start checkout. Please try again.</p>
+      )}
 
       <div className="grid md:grid-cols-3 gap-6 w-full max-w-4xl">
         {PLANS.map((plan) => {
@@ -75,7 +81,11 @@ export default async function SubscribePage({ params }: Props) {
                 action={async () => {
                   'use server'
                   const result = await createCheckoutSession(org.id, priceId)
-                  if ('url' in result) redirect(result.url)
+                  if ('url' in result) {
+                    redirect(result.url)
+                  } else {
+                    redirect(`/${orgSlug}/subscribe?error=checkout_failed`)
+                  }
                 }}
               >
                 <Button
