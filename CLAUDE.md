@@ -10,10 +10,21 @@ Full spec: `docs/superpowers/plans/2026-05-18-01-foundation.md` (Plan 1: Foundat
 Product spec: `/Users/maxdennis/.claude/plans/whimsical-drifting-quiche.md`
 Plan 3 (Timeline UI) spec: `/Users/maxdennis/.claude/plans/greedy-brewing-shamir.md`
 Plan 4 (Real-time + Views) spec: `docs/superpowers/plans/2026-05-19-04-realtime-views.md`
+Plan 5 (AI + Billing) spec: `docs/superpowers/specs/2026-05-19-ai-billing-design.md`
 
 ## Status
 
-**Plans 1–4 are complete.** App is scaffolded, database schema + RLS are applied, scheduling engine is fully tested, interactive timeline grid is implemented, and the Resources kanban view, Capacity heatmap view, and Who's Online presence panel are live. Plan 5 (AI + Billing) is next.
+**Plans 1–7 are in progress.** Plans 1–6 are complete (foundation, scheduling engine, timeline UI, real-time + views, AI + billing, calendar sync integrations). Plan 7 (Design/UI Rebuild) is now executing — CSS tokens + font are the first task.
+
+**Design system (Plan 7):**
+- Font: Plus Jakarta Sans (replaces Inter)
+- Radius: 9px (`--radius: 0.5625rem`)
+- Purple tokens: `--plum-accent` (`#7434DB` light / `#9070CC` dark), `--plum-cta` (`#6530BA`), `--plum-accent-subtle`
+- Sidebar: collapsible (224px ↔ 52px), `bg-sidebar` (`--sidebar: #F0EBF8` light / `#0d0d0f` dark)
+- Task blocks: 26px compact, `rounded-[6px]`, fixed = purple-tinted, fluid = green-tinted
+- No glow, no blur, no glass — depth through thin borders and one quiet shadow
+- Spec: `docs/superpowers/specs/2026-05-19-ui-redesign-design.md`
+- Plan: `docs/superpowers/plans/2026-05-19-07-ui-redesign.md`
 
 ## Commands
 
@@ -63,7 +74,9 @@ app/
       settings/  # org settings, integrations, billing
 ```
 
-Middleware (`middleware.ts`) enforces auth on all `/(app)/` routes and validates org membership on `/{orgSlug}/` routes before the request reaches the page.
+**`proxy.ts`** (not `middleware.ts`) is the middleware entrypoint in this project — Next.js 16 picks it up directly. Creating `middleware.ts` alongside it causes a build error. `proxy.ts` forwards `x-pathname` as a **request header** (`NextResponse.next({ request: { headers: requestHeaders } })`) so Server Components can read it via `headers()`. Response headers set in middleware are NOT readable by Server Components.
+
+`proxy.ts` enforces auth on all `/(app)/` routes and validates org membership on `/{orgSlug}/` routes before the request reaches the page.
 
 ### Scheduling Engine (`lib/engine/`)
 
@@ -148,11 +161,27 @@ Key files:
 Two features only — no others:
 
 1. **NL quick-add** (`lib/ai/quick-add.ts`) — Haiku parses natural language from `⌘K` into task creation params. Pre-fills the form; user confirms. Never creates tasks unilaterally.
+   - `components/ai/quick-add-provider.tsx` — Global `document` keydown listener (⌘K / Ctrl+K); mounts dialog. Wrapped around children in `app/(app)/[orgSlug]/layout.tsx`.
+   - `components/ai/quick-add-dialog.tsx` — `CommandDialog` UI; calls `parseQuickAddAction` server action; navigates to `/{slug}/timeline?qa_name=...&qa_resource=...&qa_duration=...&qa_type=...` on success.
+   - `actions/ai.ts#parseQuickAddAction` — Auth + membership guard; fetches resources; calls `lib/ai/quick-add.ts`.
+   - `components/timeline/timeline-toolbar.tsx` reads `qa_*` params via `useSearchParams`, seeds `AddTaskDialog` with `prefillValues`, cleans URL via `window.history.replaceState` (not `router.replace` — avoids navigation flash).
+   - `components/timeline/add-task-dialog.tsx` accepts optional `initialValues?: PrefillValues | null` prop.
+
 2. **Status report** (`lib/ai/status-report.ts`) — Sonnet generates a structured team status summary on demand. Cache the long system prompt with `cache_control: { type: 'ephemeral' }`. Stream the response.
+   - `components/ai/status-report-drawer.tsx` — Sheet drawer; idle/loading/done/error states; streams via `fetch` + `ReadableStream.getReader()` + `TextDecoder`. Resets to idle on close.
+   - `app/api/ai/status-report/route.ts` — POST; auth + membership guard; returns `"No tasks scheduled yet."` without calling AI if no tasks.
+   - `lib/ai/status-report.ts` uses a lazy Anthropic singleton so `buildStatusReportPrompt` (pure function) can be imported in Vitest tests without a real API key.
 
 ### Pricing / Billing
 
 No free trial. Stripe flat tiers: Starter $99/mo, Team $249/mo, Agency $499/mo. Member count enforcement is in `actions/orgs.ts#inviteMember` (not middleware — avoids a DB count on every request). Stripe webhooks update `orgs.plan_tier` on subscription changes.
+
+Key files:
+- `lib/stripe.ts` — Stripe singleton + `PRICE_TIER_MAP` (price ID → tier). Uses `requiredEnv()` guard.
+- `actions/billing.ts` — `createCheckoutSession` (owner/admin only) and `createPortalSession` (guards against missing `stripe_customer_id`).
+- `app/api/stripe/webhook/route.ts` — Raw body via `request.text()` for HMAC; uses `createServiceClient()` (service role). Handles `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`. Each case wrapped in try/catch. Stripe union types (`string | Stripe.X | null`) extracted with `typeof x === 'string' ? x : x?.id`.
+- `app/(app)/[orgSlug]/subscribe/page.tsx` — Plan selection; inline `'use server'` form actions; already-subscribed users redirect to `/timeline`.
+- `app/(app)/[orgSlug]/layout.tsx` — Reads `x-pathname` from `headers()` to skip redirect loop; gates on `org.stripe_subscription_id`.
 
 ## Implementation Plans
 
@@ -164,8 +193,8 @@ Plans are in `docs/superpowers/plans/`. Work through them in order:
 | 2: Scheduling Engine | `2026-05-18-02-scheduling-engine.md` | ✅ Complete |
 | 3: Timeline UI | `/Users/maxdennis/.claude/plans/greedy-brewing-shamir.md` | ✅ Complete |
 | 4: Real-time + Views | `2026-05-19-04-realtime-views.md` | ✅ Complete |
-| 5: AI + Billing | *(not yet written)* | After Plan 4 |
-| 6: Integrations | *(not yet written)* | After Plan 5 |
-| 7: Design/UI Rebuild | *(not yet written)* | After Plan 6 |
+| 5: AI + Billing | `docs/superpowers/specs/2026-05-19-ai-billing-design.md` | ✅ Complete |
+| 6: Integrations | `2026-05-19-06-calendar-sync.md` | ✅ Complete |
+| 7: Design/UI Rebuild | `2026-05-19-07-ui-redesign.md` | 🔄 In Progress |
 
 When starting a plan, use the `superpowers:executing-plans` or `superpowers:subagent-driven-development` skill.
