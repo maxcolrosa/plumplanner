@@ -28,52 +28,86 @@ export async function POST(request: Request) {
 
   switch (event.type) {
     case 'checkout.session.completed': {
-      const session = event.data.object as Stripe.Checkout.Session
-      const orgId = session.client_reference_id
-      if (!orgId) break
+      try {
+        const session = event.data.object as Stripe.Checkout.Session
+        const orgId = session.client_reference_id
+        if (!orgId) break
 
-      const subscriptionId = session.subscription as string
-      const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
-        expand: ['items.data.price'],
-      })
-      const priceId = subscription.items.data[0].price.id
-      const planTier = PRICE_TIER_MAP[priceId] ?? 'starter'
+        const subscriptionId =
+          typeof session.subscription === 'string'
+            ? session.subscription
+            : (session.subscription as Stripe.Subscription | null)?.id
+        if (!subscriptionId) break
 
-      await admin
-        .from('orgs')
-        .update({
-          stripe_customer_id: session.customer as string,
-          stripe_subscription_id: subscriptionId,
-          plan_tier: planTier,
+        const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
+          expand: ['items.data.price'],
         })
-        .eq('id', orgId)
+        const priceId = subscription.items.data[0]?.price.id
+        if (!priceId) break
+        const planTier = PRICE_TIER_MAP[priceId] ?? 'starter'
+
+        const stripeCustomerId =
+          typeof session.customer === 'string'
+            ? session.customer
+            : (session.customer as Stripe.Customer | null)?.id ?? ''
+        if (!stripeCustomerId) break
+
+        await admin
+          .from('orgs')
+          .update({
+            stripe_customer_id: stripeCustomerId,
+            stripe_subscription_id: subscriptionId,
+            plan_tier: planTier,
+          })
+          .eq('id', orgId)
+      } catch (err) {
+        console.error('[webhook]', event.type, err)
+      }
       break
     }
 
     case 'customer.subscription.updated': {
-      const subscription = event.data.object as Stripe.Subscription
-      const customerId = subscription.customer as string
-      const priceId = subscription.items.data[0].price.id
-      const planTier = PRICE_TIER_MAP[priceId] ?? 'starter'
+      try {
+        const subscription = event.data.object as Stripe.Subscription
+        const customerId =
+          typeof subscription.customer === 'string'
+            ? subscription.customer
+            : (subscription.customer as Stripe.Customer).id
+        const priceId = subscription.items.data[0]?.price.id
+        if (!priceId) break
+        const planTier = PRICE_TIER_MAP[priceId] ?? 'starter'
+        if (!PRICE_TIER_MAP[priceId]) {
+          console.warn('[webhook] Unknown price ID, defaulting to starter:', priceId)
+        }
 
-      await admin
-        .from('orgs')
-        .update({ plan_tier: planTier })
-        .eq('stripe_customer_id', customerId)
+        await admin
+          .from('orgs')
+          .update({ plan_tier: planTier })
+          .eq('stripe_customer_id', customerId)
+      } catch (err) {
+        console.error('[webhook]', event.type, err)
+      }
       break
     }
 
     case 'customer.subscription.deleted': {
-      const subscription = event.data.object as Stripe.Subscription
-      const customerId = subscription.customer as string
+      try {
+        const subscription = event.data.object as Stripe.Subscription
+        const customerId =
+          typeof subscription.customer === 'string'
+            ? subscription.customer
+            : (subscription.customer as Stripe.Customer).id
 
-      await admin
-        .from('orgs')
-        .update({
-          stripe_subscription_id: null,
-          plan_tier: 'starter',
-        })
-        .eq('stripe_customer_id', customerId)
+        await admin
+          .from('orgs')
+          .update({
+            stripe_subscription_id: null,
+            plan_tier: 'starter',
+          })
+          .eq('stripe_customer_id', customerId)
+      } catch (err) {
+        console.error('[webhook]', event.type, err)
+      }
       break
     }
   }
