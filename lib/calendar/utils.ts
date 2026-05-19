@@ -22,7 +22,7 @@ export function autoMatchResource(
 ): string | null {
   const personResources = resources.filter((r) => r.icon_type === 'person')
   const nameLower = userName.toLowerCase()
-  const emailPrefix = userEmail.split('@')[0].toLowerCase()
+  const emailPrefix = (userEmail.includes('@') ? userEmail.split('@')[0] : userEmail).toLowerCase()
 
   const matches = personResources.filter((r) => {
     const rName = r.name.toLowerCase()

@@ -69,4 +69,12 @@ describe('autoMatchResource', () => {
     // Only person resources considered — 'Meeting Room' is icon_type='room'
     expect(autoMatchResource('Meeting Room', 'room@co.com', resources)).toBeNull()
   })
+
+  it('returns null when no resources match', () => {
+    expect(autoMatchResource('XYZ Unrelated', 'xyz@co.com', resources)).toBeNull()
+  })
+
+  it('returns null for empty resources array', () => {
+    expect(autoMatchResource('Alice', 'alice@co.com', [])).toBeNull()
+  })
 })
