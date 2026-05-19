@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useTimelineStore } from '@/lib/store/timeline'
 import { Button } from '@/components/ui/button'
@@ -8,7 +9,12 @@ import { addUTCDays } from '@/lib/timeline-utils'
 import type { ZoomLevel } from '@/lib/timeline-utils'
 import type { WorkingWeek } from '@/lib/types'
 import { AddTaskDialog } from '@/components/timeline/add-task-dialog'
+import type { PrefillValues } from '@/components/timeline/add-task-dialog'
 import { CreateResourceDialog } from '@/components/timeline/create-resource-dialog'
+
+function todayUTCString() {
+  return new Date().toISOString().slice(0, 10)
+}
 
 interface TimelineToolbarProps {
   resources: Array<{
@@ -43,6 +49,32 @@ export function TimelineToolbar({ resources, projects, orgId }: TimelineToolbarP
   // Dialog open states
   const [addResourceOpen, setAddResourceOpen] = useState(false)
   const [addTaskOpen, setAddTaskOpen] = useState(false)
+  const [prefillValues, setPrefillValues] = useState<PrefillValues | null>(null)
+
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    const qaName = searchParams.get('qa_name')
+    if (!qaName) return
+
+    setPrefillValues({
+      name: qaName,
+      resourceId: searchParams.get('qa_resource') ?? resources[0]?.id ?? '',
+      durationHours: Number(searchParams.get('qa_duration') ?? 8),
+      type: (searchParams.get('qa_type') ?? 'fluid') as 'fluid' | 'fixed',
+      startDate: searchParams.get('qa_start') ?? todayUTCString(),
+    })
+    setAddTaskOpen(true)
+
+    // Clean up URL without triggering a navigation flash
+    const url = new URL(window.location.href)
+    url.searchParams.delete('qa_name')
+    url.searchParams.delete('qa_resource')
+    url.searchParams.delete('qa_duration')
+    url.searchParams.delete('qa_type')
+    url.searchParams.delete('qa_start')
+    window.history.replaceState({}, '', url.toString())
+  }, [searchParams, resources])
 
   const step = ZOOM_STEPS[zoomLevel]
 
@@ -90,17 +122,18 @@ export function TimelineToolbar({ resources, projects, orgId }: TimelineToolbarP
         <Button variant="outline" size="sm" onClick={() => setAddResourceOpen(true)}>
           + Add Resource
         </Button>
-        <Button variant="outline" size="sm" onClick={() => setAddTaskOpen(true)}>
+        <Button variant="outline" size="sm" onClick={() => { setPrefillValues(null); setAddTaskOpen(true) }}>
           + Add Task
         </Button>
       </div>
 
       <AddTaskDialog
         open={addTaskOpen}
-        onClose={() => setAddTaskOpen(false)}
+        onClose={() => { setAddTaskOpen(false); setPrefillValues(null) }}
         resources={resources}
         projects={projects}
         orgId={orgId}
+        initialValues={prefillValues}
       />
       <CreateResourceDialog
         open={addResourceOpen}

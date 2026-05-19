@@ -15,12 +15,21 @@ import { Input } from '@/components/ui/input'
 import { insertTask } from '@/actions/schedule'
 import { useTimelineStore } from '@/lib/store/timeline'
 
+export interface PrefillValues {
+  name: string
+  resourceId: string
+  durationHours: number
+  type: 'fluid' | 'fixed'
+  startDate: string
+}
+
 interface AddTaskDialogProps {
   open: boolean
   onClose: () => void
   resources: Array<{ id: string; name: string }>
   projects: Array<{ id: string; name: string; color: string }>
   orgId: string
+  initialValues?: PrefillValues | null
 }
 
 function todayUTCString(): string {
@@ -33,6 +42,7 @@ export function AddTaskDialog({
   resources,
   projects,
   orgId,
+  initialValues,
 }: AddTaskDialogProps) {
   const [name, setName] = useState('')
   const [resourceId, setResourceId] = useState(resources[0]?.id ?? '')
@@ -50,15 +60,23 @@ export function AddTaskDialog({
   // Reset form when dialog opens/closes
   useEffect(() => {
     if (open) {
-      setName('')
-      setResourceId(resources[0]?.id ?? '')
-      setType('fluid')
-      setDurationHours(8)
-      setStartDate(todayUTCString())
+      if (initialValues) {
+        setName(initialValues.name)
+        setResourceId(initialValues.resourceId || resources[0]?.id || '')
+        setType(initialValues.type)
+        setDurationHours(initialValues.durationHours)
+        setStartDate(initialValues.startDate || todayUTCString())
+      } else {
+        setName('')
+        setResourceId(resources[0]?.id ?? '')
+        setType('fluid')
+        setDurationHours(8)
+        setStartDate(todayUTCString())
+      }
       setProjectId(null)
       setError(null)
     }
-  }, [open, resources])
+  }, [open, resources, initialValues])
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
