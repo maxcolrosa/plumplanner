@@ -15,13 +15,19 @@ interface TimelineViewProps {
     name: string
     icon_type: 'person' | 'room' | 'equipment'
     working_week: WorkingWeek
+    user_id: string | null
   }>
   org: { id: string; name: string; slug: string }
   projects: Array<{ id: string; name: string; color: string }>
+  connectedUserIds: Set<string>
+  taskSyncErrors: Set<string>
 }
 
-export function TimelineView({ initialTasks, resources, org, projects }: TimelineViewProps) {
-  const store = useMemo(() => createTimelineStore({ tasks: initialTasks }), [])
+export function TimelineView({ initialTasks, resources, org, projects, connectedUserIds, taskSyncErrors }: TimelineViewProps) {
+  const store = useMemo(
+    () => createTimelineStore({ tasks: initialTasks, connectedUserIds, taskSyncErrors }),
+    []
+  )
 
   // Sync when server re-fetches (e.g., after router.refresh())
   // Skip if an optimistic edit is in flight to avoid clobbering concurrent state
@@ -30,6 +36,14 @@ export function TimelineView({ initialTasks, resources, org, projects }: Timelin
     if (preOptimisticTasks !== null) return
     store.getState().setAllTasks(initialTasks)
   }, [initialTasks, store])
+
+  useEffect(() => {
+    store.getState().setConnectedUserIds(connectedUserIds)
+  }, [connectedUserIds, store])
+
+  useEffect(() => {
+    store.getState().setTaskSyncErrors(taskSyncErrors)
+  }, [taskSyncErrors, store])
 
   // Supabase Realtime subscription for collaborative schedule updates
   useEffect(() => {

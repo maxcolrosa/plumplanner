@@ -17,6 +17,8 @@ interface TimelineState {
   selectedTaskId: string | null
   draggingTaskId: string | null
   preOptimisticTasks: Record<string, EngineTask[]> | null
+  connectedUserIds: Set<string>    // user IDs with calendar connected
+  taskSyncErrors: Set<string>      // task IDs with sync_error=true
 }
 
 interface TimelineActions {
@@ -28,6 +30,8 @@ interface TimelineActions {
   setViolations: (v: ConstraintViolation[]) => void
   setSelectedTask: (id: string | null) => void
   setDragging: (id: string | null) => void
+  setConnectedUserIds: (ids: Set<string>) => void
+  setTaskSyncErrors: (ids: Set<string>) => void
   beginOptimistic: (resourceId: string, newTasks: EngineTask[]) => void
   commitOptimistic: () => void
   revertOptimistic: () => void
@@ -51,7 +55,9 @@ export function createTimelineStore(
     selectedTaskId: null,
     draggingTaskId: null,
     preOptimisticTasks: null,
-    // spread caller overrides
+    connectedUserIds: initial?.connectedUserIds ?? new Set<string>(),
+    taskSyncErrors: initial?.taskSyncErrors ?? new Set<string>(),
+    // spread caller overrides (excluding Set fields handled above)
     ...initial,
 
     // --- actions ---
@@ -73,6 +79,10 @@ export function createTimelineStore(
     setSelectedTask: (id) => set({ selectedTaskId: id }),
 
     setDragging: (id) => set({ draggingTaskId: id }),
+
+    setConnectedUserIds: (ids) => set({ connectedUserIds: ids }),
+
+    setTaskSyncErrors: (ids) => set({ taskSyncErrors: ids }),
 
     beginOptimistic: (resourceId, newTasks) =>
       set((state) => ({

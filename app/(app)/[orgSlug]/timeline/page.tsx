@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import type { EngineTask } from '@/lib/engine/types'
 import type { WorkingWeek } from '@/lib/types'
 import { TimelineView } from '@/components/timeline/timeline-view'
@@ -27,15 +27,19 @@ export default async function TimelinePage({ params }: Props) {
 
   if (!org) notFound()
 
+  const admin = createServiceClient()
+
   // 2. Parallel fetch
   const [
     { data: resources, error: resourcesError },
     { data: taskRows, error: tasksError },
     { data: projects, error: projectsError },
+    { data: tokenMembers },
+    { data: syncErrorRows },
   ] = await Promise.all([
     supabase
       .from('resources')
-      .select('id, name, icon_type, working_week')
+      .select('id, name, icon_type, working_week, user_id')
       .eq('org_id', org.id),
     supabase
       .from('tasks')
@@ -45,11 +49,31 @@ export default async function TimelinePage({ params }: Props) {
       .from('projects')
       .select('id, name, color')
       .eq('org_id', org.id),
+    // Members who have at least one calendar token in this org
+    admin
+      .from('integration_tokens')
+      .select('org_members!inner(user_id, org_id)')
+      .eq('org_members.org_id', org.id),
+    // Tasks with a sync error
+    admin
+      .from('calendar_events')
+      .select('task_id')
+      .eq('sync_error', true),
   ])
 
   if (resourcesError || tasksError || projectsError) {
     throw new Error('Failed to load timeline data')
   }
+
+  const connectedUserIds = new Set<string>(
+    (tokenMembers ?? [])
+      .map((row: { org_members: { user_id: string } | null }) => row.org_members?.user_id)
+      .filter(Boolean) as string[]
+  )
+
+  const taskSyncErrors = new Set<string>(
+    (syncErrorRows ?? []).map((row: { task_id: string }) => row.task_id)
+  )
 
   // 3. Convert task rows → EngineTask (string dates → Date)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -73,6 +97,7 @@ export default async function TimelinePage({ params }: Props) {
     name: string
     icon_type: 'person' | 'room' | 'equipment'
     working_week: WorkingWeek
+    user_id: string | null
   }>
 
   const typedProjects = (projects ?? []) as Array<{
@@ -87,6 +112,8 @@ export default async function TimelinePage({ params }: Props) {
       resources={typedResources}
       org={org}
       projects={typedProjects}
+      connectedUserIds={connectedUserIds}
+      taskSyncErrors={taskSyncErrors}
     />
   )
 }
