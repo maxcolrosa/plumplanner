@@ -366,6 +366,88 @@ export async function reorderFluidTask(
   return { tasks: result, violations }
 }
 
+export async function reassignTask(
+  taskId: string,
+  toResourceId: string,
+  atPosition: number
+): Promise<
+  | { sourceTasks: EngineTask[]; targetTasks: EngineTask[]; violations: ConstraintViolation[] }
+  | { error: string }
+> {
+  const supabase = await createClient()
+  const admin = createServiceClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { data: taskRow } = await supabase
+    .from('tasks')
+    .select('*')
+    .eq('id', taskId)
+    .single()
+
+  if (!taskRow) return { error: 'Task not found' }
+  if (taskRow.type !== 'fluid') return { error: 'Only fluid tasks can be reassigned' }
+
+  const fromResourceId = taskRow.resource_id as string
+
+  if (fromResourceId === toResourceId) return { error: 'Task is already on this resource' }
+
+  const { data: member } = await supabase
+    .from('org_members')
+    .select('id')
+    .eq('org_id', taskRow.org_id)
+    .eq('user_id', user.id)
+    .not('joined_at', 'is', null)
+    .single()
+
+  if (!member) return { error: 'Not a member of this organisation' }
+
+  const [sourceFetched, targetFetched] = await Promise.all([
+    fetchResourceAndTasks(fromResourceId, supabase),
+    fetchResourceAndTasks(toResourceId, supabase),
+  ])
+
+  if (!sourceFetched) return { error: 'Source resource not found' }
+  if (!targetFetched) return { error: 'Target resource not found' }
+
+  const { tasks: sourceTasks, orgId } = sourceFetched
+  const { resource: targetResource, tasks: targetTasks } = targetFetched
+
+  const newSourceTasks = engineDeleteTask(sourceTasks, taskId)
+
+  // Build the moved task referencing the target resource
+  const movedTask: TaskInput = {
+    id: (taskRow.id as string),
+    org_id: taskRow.org_id as string,
+    resource_id: toResourceId,
+    project_id: (taskRow.project_id as string | null) ?? null,
+    name: taskRow.name as string,
+    type: 'fluid',
+    duration_hours: Number(taskRow.duration_hours),
+    constraints: Array.isArray(taskRow.constraints) ? (taskRow.constraints as TaskConstraint[]) : [],
+    tags: Array.isArray(taskRow.tags) ? (taskRow.tags as string[]) : [],
+    external_ref: (taskRow.external_ref as ExternalRef | null) ?? null,
+  }
+
+  const now = new Date()
+  const newTargetTasks = engineInsertTask(targetResource, targetTasks, movedTask, atPosition, now)
+  const violations = validateConstraints([...newSourceTasks, ...newTargetTasks])
+
+  const [sourceResult, targetResult] = await Promise.all([
+    persistAndBroadcast(admin, supabase, orgId, fromResourceId, sourceTasks, newSourceTasks),
+    persistAndBroadcast(admin, supabase, orgId, toResourceId, targetTasks, newTargetTasks),
+  ])
+
+  if (sourceResult.error) return { error: sourceResult.error }
+  if (targetResult.error) return { error: targetResult.error }
+
+  revalidatePath('/[orgSlug]/timeline', 'page')
+  return { sourceTasks: newSourceTasks, targetTasks: newTargetTasks, violations }
+}
+
 export async function compressResource(
   resourceId: string,
   fromDate: string,
