@@ -115,3 +115,22 @@ describe('parseWeekParam / formatWeekParam', () => {
     expect(result.getUTCDay()).toBe(1)
   })
 })
+
+describe('computeWeekCells → computeKPIs pipeline', () => {
+  it('produces correct KPIs from real tasks', () => {
+    const weekDays = getWeekDays(new Date(Date.UTC(2026, 4, 18))) // Mon 18 May
+    const resources = [{ id: 'res-1', name: 'Alice', working_week: WORKING_WEEK }]
+    // Two tasks: one 8h on Mon, one 12h on Tue (overloads Tuesday)
+    const tasks = [
+      makeTask({ id: 'a', duration_hours: 8 }),                        // 8h on Mon
+      makeTask({ id: 'b', duration_hours: 12, start_date: new Date(Date.UTC(2026, 4, 19)), end_date: new Date(Date.UTC(2026, 4, 19)) }), // 12h on Tue
+    ]
+    const cells = computeWeekCells(weekDays, resources, tasks)
+    const kpis = computeKPIs(cells)
+    // Mon: 8h booked / 8h cap = 100% (not overloaded)
+    // Tue: 12h booked / 8h cap = overloaded
+    // Wed–Fri: 0/8h = 0%
+    expect(kpis.overloadedDays).toBe(1)
+    expect(kpis.avgUtilization).toBeGreaterThan(0)
+  })
+})

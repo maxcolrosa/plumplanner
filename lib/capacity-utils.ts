@@ -82,12 +82,18 @@ export function computeKPIs(cells: CapacityCell[]): CapacityKPIs {
 }
 
 export function formatWeekParam(weekStart: Date): string {
-  const y = weekStart.getUTCFullYear()
-  const jan4 = new Date(Date.UTC(y, 0, 4))
+  // ISO 8601: week 1 is the week containing Jan 4.
+  // The ISO year of a Monday may differ from its calendar year.
+  const thursday = new Date(weekStart)
+  thursday.setUTCDate(weekStart.getUTCDate() + 3) // Thu of this ISO week
+  const isoYear = thursday.getUTCFullYear()
+
+  const jan4 = new Date(Date.UTC(isoYear, 0, 4))
   const startOfW1 = new Date(jan4)
   startOfW1.setUTCDate(jan4.getUTCDate() - ((jan4.getUTCDay() + 6) % 7))
+
   const weekNum = Math.round((weekStart.getTime() - startOfW1.getTime()) / (7 * 86_400_000)) + 1
-  return `${y}-W${String(weekNum).padStart(2, '0')}`
+  return `${isoYear}-W${String(weekNum).padStart(2, '0')}`
 }
 
 export function parseWeekParam(param: string | null): Date {
@@ -96,6 +102,7 @@ export function parseWeekParam(param: string | null): Date {
   if (!match) return currentWeekMonday()
   const year = Number(match[1])
   const week = Number(match[2])
+  if (week < 1 || week > 53) return currentWeekMonday()
   const jan4 = new Date(Date.UTC(year, 0, 4))
   const startOfW1 = new Date(jan4)
   startOfW1.setUTCDate(jan4.getUTCDate() - ((jan4.getUTCDay() + 6) % 7))
