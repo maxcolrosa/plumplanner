@@ -77,26 +77,34 @@ export default async function SettingsPage({ params, searchParams }: Props) {
   }
 
   return (
-    <div className="p-8 max-w-2xl">
-      <h1 className="text-2xl font-semibold mb-1">Settings</h1>
-      <p className="text-sm text-muted-foreground mb-8">{(org as { name: string }).name}</p>
+    <div className="flex flex-col h-full overflow-auto">
+      {/* Page header */}
+      <div className="border-b border-border px-8 py-5 shrink-0">
+        <h1 className="text-[20px] font-bold text-foreground">Settings</h1>
+        <p className="text-[13px] text-muted-foreground mt-0.5">Manage your workspace and integrations</p>
+      </div>
 
-      {error === 'oauth_failed' && (
-        <div className="mb-6 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
-          Calendar connection failed. Please try again.
+      <div className="p-8 max-w-2xl space-y-5">
+        {/* Calendar integrations card */}
+        <div className="rounded-xl border border-border bg-card overflow-hidden">
+          <div className="px-5 py-4 border-b border-border">
+            <h2 className="text-[15px] font-semibold text-foreground">Calendar Integrations</h2>
+            <p className="text-[12px] text-muted-foreground mt-0.5">Sync tasks to your Google or Microsoft calendar</p>
+          </div>
+          <div className="px-5 py-4">
+            <CalendarSettings
+              orgId={orgId}
+              orgSlug={orgSlug}
+              googleConnected={connectedProviders.has('google_calendar')}
+              outlookConnected={connectedProviders.has('outlook')}
+              myResourceId={myResourceId}
+              resources={resourceOptions}
+              isAdmin={isAdmin}
+              allResourceLinks={allResourceLinks}
+            />
+          </div>
         </div>
-      )}
-
-      <CalendarSettings
-        orgId={orgId}
-        orgSlug={orgSlug}
-        googleConnected={connectedProviders.has('google_calendar')}
-        outlookConnected={connectedProviders.has('outlook')}
-        myResourceId={myResourceId}
-        resources={resourceOptions}
-        isAdmin={isAdmin}
-        allResourceLinks={allResourceLinks}
-      />
+      </div>
     </div>
   )
 }
