@@ -395,6 +395,10 @@ export async function reassignTask(
 
   if (fromResourceId === toResourceId) return { error: 'Task is already on this resource' }
 
+  if (taskRow.task_group_id !== null) {
+    return { error: 'Split task segments cannot be reassigned individually' }
+  }
+
   const { data: member } = await supabase
     .from('org_members')
     .select('id')
@@ -404,6 +408,15 @@ export async function reassignTask(
     .single()
 
   if (!member) return { error: 'Not a member of this organisation' }
+
+  const { data: targetResourceRow } = await supabase
+    .from('resources')
+    .select('org_id')
+    .eq('id', toResourceId)
+    .single()
+  if (!targetResourceRow || targetResourceRow.org_id !== taskRow.org_id) {
+    return { error: 'Target resource not found or belongs to a different organisation' }
+  }
 
   const [sourceFetched, targetFetched] = await Promise.all([
     fetchResourceAndTasks(fromResourceId, supabase),
@@ -436,12 +449,12 @@ export async function reassignTask(
   const newTargetTasks = engineInsertTask(targetResource, targetTasks, movedTask, atPosition, now)
   const violations = validateConstraints([...newSourceTasks, ...newTargetTasks])
 
-  const [sourceResult, targetResult] = await Promise.all([
-    persistAndBroadcast(admin, supabase, orgId, fromResourceId, sourceTasks, newSourceTasks),
-    persistAndBroadcast(admin, supabase, orgId, toResourceId, targetTasks, newTargetTasks),
-  ])
-
+  // Write source first; if it fails we return early before touching the target
+  const sourceResult = await persistAndBroadcast(admin, supabase, orgId, fromResourceId, sourceTasks, newSourceTasks)
   if (sourceResult.error) return { error: sourceResult.error }
+
+  // Write target second; source is already written — client should refresh both slices on error
+  const targetResult = await persistAndBroadcast(admin, supabase, orgId, toResourceId, targetTasks, newTargetTasks)
   if (targetResult.error) return { error: targetResult.error }
 
   revalidatePath('/[orgSlug]/timeline', 'page')
