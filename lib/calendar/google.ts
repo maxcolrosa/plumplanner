@@ -3,6 +3,12 @@ import type { CalendarEvent } from './types'
 const EVENTS_API = 'https://www.googleapis.com/calendar/v3/calendars/primary/events'
 const TOKEN_API = 'https://oauth2.googleapis.com/token'
 
+function requiredEnv(key: string): string {
+  const val = process.env[key]
+  if (!val) throw new Error(`Missing required environment variable: ${key}`)
+  return val
+}
+
 // Google all-day events need exclusive end date (last day + 1)
 function exclusiveEnd(dateStr: string): string {
   const [y, m, d] = dateStr.split('-').map(Number)
@@ -17,8 +23,8 @@ export async function refreshGoogleToken(
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
-      client_id: process.env.GOOGLE_CLIENT_ID!,
-      client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+      client_id: requiredEnv('GOOGLE_CLIENT_ID'),
+      client_secret: requiredEnv('GOOGLE_CLIENT_SECRET'),
       refresh_token: refreshToken,
       grant_type: 'refresh_token',
     }),
