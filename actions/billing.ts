@@ -13,12 +13,15 @@ export async function createCheckoutSession(
 
   const { data: member } = await supabase
     .from('org_members')
-    .select('id')
+    .select('id, role')
     .eq('org_id', orgId)
     .eq('user_id', user.id)
     .not('joined_at', 'is', null)
     .single()
   if (!member) return { error: 'Not a member of this organisation' }
+  if (!['owner', 'admin'].includes(member.role)) {
+    return { error: 'Only org owners and admins can manage billing' }
+  }
 
   if (!PRICE_TIER_MAP[priceId]) return { error: 'Invalid plan' }
 
@@ -29,18 +32,22 @@ export async function createCheckoutSession(
     .single()
   if (!org) return { error: 'Organisation not found' }
 
-  const session = await stripe.checkout.sessions.create({
-    mode: 'subscription',
-    payment_method_types: ['card'],
-    line_items: [{ price: priceId, quantity: 1 }],
-    client_reference_id: orgId,
-    customer_email: user.email,
-    success_url: `${process.env.NEXT_PUBLIC_APP_URL}/${org.slug}/timeline`,
-    cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/${org.slug}/subscribe`,
-  })
+  try {
+    const session = await stripe.checkout.sessions.create({
+      mode: 'subscription',
+      payment_method_types: ['card'],
+      line_items: [{ price: priceId, quantity: 1 }],
+      client_reference_id: orgId,
+      customer_email: user.email,
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/${org.slug}/timeline`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/${org.slug}/subscribe`,
+    })
 
-  if (!session.url) return { error: 'Failed to create checkout session' }
-  return { url: session.url }
+    if (!session.url) return { error: 'Failed to create checkout session' }
+    return { url: session.url }
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Stripe error' }
+  }
 }
 
 export async function createPortalSession(
@@ -52,12 +59,15 @@ export async function createPortalSession(
 
   const { data: member } = await supabase
     .from('org_members')
-    .select('id')
+    .select('id, role')
     .eq('org_id', orgId)
     .eq('user_id', user.id)
     .not('joined_at', 'is', null)
     .single()
   if (!member) return { error: 'Not a member of this organisation' }
+  if (!['owner', 'admin'].includes(member.role)) {
+    return { error: 'Only org owners and admins can manage billing' }
+  }
 
   const { data: org } = await supabase
     .from('orgs')
@@ -65,14 +75,19 @@ export async function createPortalSession(
     .eq('id', orgId)
     .single()
 
-  if (!org?.stripe_customer_id) {
+  if (!org) return { error: 'Organisation not found' }
+  if (!org.stripe_customer_id) {
     return { error: 'No billing account found. Please contact support.' }
   }
 
-  const session = await stripe.billingPortal.sessions.create({
-    customer: org.stripe_customer_id,
-    return_url: `${process.env.NEXT_PUBLIC_APP_URL}/${org.slug}/timeline`,
-  })
+  try {
+    const session = await stripe.billingPortal.sessions.create({
+      customer: org.stripe_customer_id,
+      return_url: `${process.env.NEXT_PUBLIC_APP_URL}/${org.slug}/timeline`,
+    })
 
-  return { url: session.url }
+    return { url: session.url }
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Stripe error' }
+  }
 }
