@@ -24,7 +24,10 @@ export function TimelineView({ initialTasks, resources, org, projects }: Timelin
   const store = useMemo(() => createTimelineStore({ tasks: initialTasks }), [])
 
   // Sync when server re-fetches (e.g., after router.refresh())
+  // Skip if an optimistic edit is in flight to avoid clobbering concurrent state
   useEffect(() => {
+    const { preOptimisticTasks } = store.getState()
+    if (preOptimisticTasks !== null) return
     store.getState().setAllTasks(initialTasks)
   }, [initialTasks, store])
 

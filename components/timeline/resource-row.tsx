@@ -4,6 +4,9 @@ import { useRef } from 'react'
 import { User, Building2, Wrench } from 'lucide-react'
 import { useTimelineStore } from '@/lib/store/timeline'
 import { TaskBlock } from './task-block'
+import type { EngineTask } from '@/lib/engine/types'
+
+const EMPTY_TASKS: EngineTask[] = []
 
 interface ResourceRowProps {
   resource: {
@@ -20,7 +23,7 @@ const ICON_MAP = {
 } as const
 
 export function ResourceRow({ resource }: ResourceRowProps) {
-  const tasks = useTimelineStore((s) => s.tasks[resource.id] ?? [])
+  const tasks = useTimelineStore((s) => s.tasks[resource.id] ?? EMPTY_TASKS)
   const taskAreaRef = useRef<HTMLDivElement>(null)
 
   const Icon = ICON_MAP[resource.icon_type]

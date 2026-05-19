@@ -18,11 +18,12 @@ function computeDropPosition(
   dropX: number,
   viewportStart: Date,
   dayWidthPx: number,
-  tasks: EngineTask[]
+  tasks: EngineTask[],
+  excludeId: string
 ): number {
   const dropDate = pixelToDate(dropX, viewportStart, dayWidthPx)
   return tasks
-    .filter((t) => t.type === 'fluid')
+    .filter((t) => t.type === 'fluid' && t.id !== excludeId)
     .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
     .filter((t) => t.end_date < dropDate)
     .length
@@ -32,7 +33,12 @@ export function TaskBlock({ task, taskAreaRef, resourceTasks }: TaskBlockProps) 
   const viewportStart = useTimelineStore((s) => s.viewportStart)
   const zoomLevel = useTimelineStore((s) => s.zoomLevel)
   const violations = useTimelineStore((s) => s.violations)
-  const store = useTimelineStore((s) => s)
+  const setDragging = useTimelineStore((s) => s.setDragging)
+  const beginOptimistic = useTimelineStore((s) => s.beginOptimistic)
+  const commitOptimistic = useTimelineStore((s) => s.commitOptimistic)
+  const revertOptimistic = useTimelineStore((s) => s.revertOptimistic)
+  const setTasks = useTimelineStore((s) => s.setTasks)
+  const setViolations = useTimelineStore((s) => s.setViolations)
 
   const dayWidthPx = DAY_WIDTH_PX[zoomLevel]
 
@@ -89,14 +95,14 @@ export function TaskBlock({ task, taskAreaRef, resourceTasks }: TaskBlockProps) 
     _event: MouseEvent | TouchEvent | PointerEvent,
     info: { point: { x: number; y: number } }
   ) {
-    store.setDragging(null)
+    setDragging(null)
 
     if (!taskAreaRef.current) return
 
     const areaRect = taskAreaRef.current.getBoundingClientRect()
     const dropX = info.point.x - areaRect.left
 
-    const atPosition = computeDropPosition(dropX, viewportStart, dayWidthPx, resourceTasks)
+    const atPosition = computeDropPosition(dropX, viewportStart, dayWidthPx, resourceTasks, task.id)
 
     // In-flight gate: prevent concurrent rapid drags from corrupting the snapshot
     if (inflightRef.current) return
@@ -131,20 +137,20 @@ export function TaskBlock({ task, taskAreaRef, resourceTasks }: TaskBlockProps) 
     const fixedTasks = resourceTasks.filter((t) => t.type === 'fixed')
     const optimisticTasks = [...fixedTasks, ...reorderedFluid]
 
-    store.beginOptimistic(task.resource_id, optimisticTasks)
+    beginOptimistic(task.resource_id, optimisticTasks)
 
     try {
       const result = await reorderFluidTask(task.id, atPosition)
       if ('tasks' in result) {
-        store.setTasks(task.resource_id, result.tasks)
-        store.setViolations(result.violations)
-        store.commitOptimistic()
+        setTasks(task.resource_id, result.tasks)
+        setViolations(result.violations)
+        commitOptimistic()
       } else {
-        store.revertOptimistic()
+        revertOptimistic()
         setShaking(true)
       }
     } catch {
-      store.revertOptimistic()
+      revertOptimistic()
       setShaking(true)
     } finally {
       inflightRef.current = false
@@ -192,7 +198,7 @@ export function TaskBlock({ task, taskAreaRef, resourceTasks }: TaskBlockProps) 
       try {
         const result = await adjustTask(task.id, { duration_hours: finalDays * 8 })
         if (result && 'tasks' in result) {
-          store.setTasks(task.resource_id, result.tasks)
+          setTasks(task.resource_id, result.tasks)
         } else {
           setShaking(true)
         }
@@ -249,7 +255,7 @@ export function TaskBlock({ task, taskAreaRef, resourceTasks }: TaskBlockProps) 
           drag="x"
           dragConstraints={taskAreaRef as React.RefObject<HTMLElement | null>}
           dragElastic={0.1}
-          onDragStart={() => store.setDragging(task.id)}
+          onDragStart={() => setDragging(task.id)}
           onDragEnd={handleDragEnd}
           animate={{ x: 0 }}
           style={{ width: '100%', height: '100%' }}
