@@ -48,6 +48,7 @@ function toEngineTask(row: Record<string, unknown>): EngineTask {
       : [],
     tags: Array.isArray(row.tags) ? (row.tags as string[]) : [],
     external_ref: (row.external_ref as ExternalRef | null) ?? null,
+    calendar_sync_enabled: Boolean(row.calendar_sync_enabled ?? false),
   }
 }
 
@@ -71,6 +72,7 @@ function toDbRow(task: EngineTask) {
     constraints: task.constraints as unknown as import('@/lib/types/database').Json,
     tags: task.tags,
     external_ref: task.external_ref as unknown as import('@/lib/types/database').Json | null,
+    calendar_sync_enabled: task.calendar_sync_enabled ?? false,
   }
 }
 

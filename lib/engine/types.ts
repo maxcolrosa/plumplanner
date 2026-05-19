@@ -23,6 +23,7 @@ export interface EngineTask {
   constraints: TaskConstraint[]
   tags: string[]
   external_ref: ExternalRef | null
+  calendar_sync_enabled?: boolean   // ADD THIS LINE
 }
 
 export interface TaskInput {
