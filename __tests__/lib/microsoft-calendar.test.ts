@@ -41,6 +41,24 @@ describe('Microsoft Graph calendar client', () => {
     })
   })
 
+  describe('updateEvent', () => {
+    it('PATCHes the event and returns void', async () => {
+      mockFetch.mockResolvedValueOnce({ ok: true })
+      await updateEvent('tok', 'evt-id', {
+        title: 'Updated Task',
+        startDate: '2026-05-20',
+        endDate: '2026-05-22',
+        description: 'Updated',
+      })
+      const [url, opts] = mockFetch.mock.calls[0] as [string, RequestInit]
+      expect(url).toContain('graph.microsoft.com')
+      expect(url).toContain('evt-id')
+      expect(opts.method).toBe('PATCH')
+      const body = JSON.parse(opts.body as string)
+      expect(body.isAllDay).toBe(true)
+    })
+  })
+
   describe('deleteEvent', () => {
     it('resolves without throwing for 404', async () => {
       mockFetch.mockResolvedValueOnce({ ok: false, status: 404 })
