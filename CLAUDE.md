@@ -9,10 +9,11 @@ Plum Planner is a real-time team scheduling SaaS for agencies and small teams (5
 Full spec: `docs/superpowers/plans/2026-05-18-01-foundation.md` (Plan 1: Foundation)
 Product spec: `/Users/maxdennis/.claude/plans/whimsical-drifting-quiche.md`
 Plan 3 (Timeline UI) spec: `/Users/maxdennis/.claude/plans/greedy-brewing-shamir.md`
+Plan 4 (Real-time + Views) spec: `docs/superpowers/plans/2026-05-19-04-realtime-views.md`
 
 ## Status
 
-**Plans 1 (Foundation), 2 (Scheduling Engine), and 3 (Timeline UI) are complete.** App is scaffolded, database schema + RLS are applied, scheduling engine is fully tested, and the interactive timeline grid (drag, resize, realtime, optimistic updates, add-task/add-resource dialogs) is implemented. Plan 4 (Real-time + Views) is next.
+**Plans 1–4 are complete.** App is scaffolded, database schema + RLS are applied, scheduling engine is fully tested, interactive timeline grid is implemented, and the Resources kanban view, Capacity heatmap view, and Who's Online presence panel are live. Plan 5 (AI + Billing) is next.
 
 ## Commands
 
@@ -94,14 +95,14 @@ Key files:
 - `components/timeline/add-task-dialog.tsx` — Create task form (name, resource, type, duration, start date for fixed, project).
 - `components/timeline/create-resource-dialog.tsx` — Create resource form (name + icon type).
 - `actions/resources.ts` — `createResource` server action.
-- `actions/schedule.ts` — includes `reorderFluidTask` added in Plan 3.
+- `actions/schedule.ts` — includes `reorderFluidTask` (Plan 3) and `reassignTask` (Plan 4).
 
 ### Real-time Collaboration
 
 Server Actions are the single source of truth — they run the engine, persist the result, then broadcast. Clients never push raw task mutations directly to Supabase.
 
 - `org:{org_id}:schedule` — schedule delta broadcasts after each server action
-- `org:{org_id}:presence` — cursor positions (broadcast every 200ms while active)
+- `org:{org_id}:presence` — who's online + current page (Supabase presence API via `hooks/use-presence.ts`; mounted in `SidebarNav`)
 - Clients apply optimistic updates immediately, reconcile on server broadcast. Rejection → shake animation + revert.
 
 ### Data Model Key Points
@@ -112,6 +113,35 @@ Server Actions are the single source of truth — they run the engine, persist t
 - `tasks.constraints` — JSONB array of `{ type, value? }`. Violations are soft (highlighted, not blocked).
 - `orgs.plan_tier` — `starter` (≤5), `team` (≤15), `agency` (≤25). Checked in `actions/orgs.ts` on invite.
 - All tables use RLS. Helper functions: `is_org_member(org_id)` and `is_org_admin(org_id)`.
+
+### Resources View (`components/resources/`)
+
+Kanban view at `/{orgSlug}/resources`. One column per resource; fluid tasks are draggable within and between columns.
+
+Key files:
+- `lib/store/resources.ts` — Zustand v5 store (same `createStore` pattern as timeline). State: `tasks`, `draggingTaskId`, `draggingFromResourceId`, `preOptimisticTasks`. `beginOptimistic()` takes no args (snapshots all tasks).
+- `components/resources/resources-view.tsx` — Client root; mounts store, guards `setAllTasks` behind optimistic lock.
+- `components/resources/resource-column.tsx` — One column per resource; `data-resource-id` attribute used for drop detection.
+- `components/resources/resource-task-card.tsx` — Framer Motion drag; `findDrop` queries `[data-resource-id]` DOM elements. Same-column reorder → `reorderFluidTask`; cross-column → `reassignTask`. Fine-grained store selectors only.
+- `actions/schedule.ts#reassignTask` — Atomically moves a fluid task between resources. Guards: auth, org membership, fluid-only, same-resource no-op, split-task blocked, cross-org blocked. Sequential persist (source first, then target).
+
+### Capacity View (`components/capacity/`)
+
+Heatmap view at `/{orgSlug}/capacity?week=YYYY-WNN`. All math is server-rendered; client only handles week navigation.
+
+Key files:
+- `lib/capacity-utils.ts` — Pure utils: `taskDayContributionHours` (pro-rata per calendar day), `computeWeekCells`, `computeKPIs`, `parseWeekParam`/`formatWeekParam` (ISO 8601 week, year-boundary safe). All UTC.
+- `app/(app)/[orgSlug]/capacity/page.tsx` — Server component; fetches overlapping tasks, computes cells + KPIs, passes to children.
+- `components/capacity/capacity-view.tsx` — Client wrapper; prev/next week nav via `router.push`. Accepts `weekStart` as `Date | string` (RSC serializes Date → string).
+- `components/capacity/kpi-cards.tsx` + `capacity-heatmap.tsx` — Pure presentational; no client state.
+
+### Presence (`hooks/use-presence.ts`)
+
+- Supabase Realtime presence API on channel `org:{orgId}:presence`.
+- `usePresence(orgId, userId, userName)` — Two effects: first subscribes (cleans up on unmount), second re-tracks current page on `pathname` change without re-subscribing.
+- `userColor(userId)` — deterministic hash → 6-color palette. Same color every session.
+- Mounted in `SidebarNav` (already `'use client'`); `WhoIsOnline` panel renders between nav links and sign-out.
+- Layout (`app/(app)/[orgSlug]/layout.tsx`) fetches org + user in parallel and passes `orgId`, `userId`, `userName` to `SidebarNav`.
 
 ### AI Features
 
@@ -133,7 +163,7 @@ Plans are in `docs/superpowers/plans/`. Work through them in order:
 | 1: Foundation | `2026-05-18-01-foundation.md` | ✅ Complete |
 | 2: Scheduling Engine | `2026-05-18-02-scheduling-engine.md` | ✅ Complete |
 | 3: Timeline UI | `/Users/maxdennis/.claude/plans/greedy-brewing-shamir.md` | ✅ Complete |
-| 4: Real-time + Views | *(not yet written)* | After Plan 3 |
+| 4: Real-time + Views | `2026-05-19-04-realtime-views.md` | ✅ Complete |
 | 5: AI + Billing | *(not yet written)* | After Plan 4 |
 | 6: Integrations | *(not yet written)* | After Plan 5 |
 | 7: Design/UI Rebuild | *(not yet written)* | After Plan 6 |
