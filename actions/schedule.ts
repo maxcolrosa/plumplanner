@@ -440,7 +440,7 @@ export async function reassignTask(
     name: taskRow.name as string,
     type: 'fluid',
     duration_hours: Number(taskRow.duration_hours),
-    constraints: Array.isArray(taskRow.constraints) ? (taskRow.constraints as TaskConstraint[]) : [],
+    constraints: Array.isArray(taskRow.constraints) ? (taskRow.constraints as unknown as TaskConstraint[]) : [],
     tags: Array.isArray(taskRow.tags) ? (taskRow.tags as string[]) : [],
     external_ref: (taskRow.external_ref as ExternalRef | null) ?? null,
   }

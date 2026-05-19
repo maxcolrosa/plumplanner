@@ -5,6 +5,7 @@ import { CapacityView } from '@/components/capacity/capacity-view'
 import { KpiCards } from '@/components/capacity/kpi-cards'
 import { CapacityHeatmap } from '@/components/capacity/capacity-heatmap'
 import type { EngineTask } from '@/lib/engine/types'
+import type { WorkingWeekConfig } from '@/lib/capacity-utils'
 
 export default async function CapacityPage({
   params,
@@ -50,9 +51,9 @@ export default async function CapacityPage({
     ...row,
     start_date: toDate(row.start_date),
     end_date: toDate(row.end_date),
-  })) as EngineTask[]
+  })) as unknown as EngineTask[]
 
-  const cells = computeWeekCells(weekDays, resources ?? [], tasks)
+  const cells = computeWeekCells(weekDays, (resources ?? []) as unknown as { id: string; name: string; working_week: WorkingWeekConfig }[], tasks)
   const kpis = computeKPIs(cells)
 
   return (
