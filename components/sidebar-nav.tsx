@@ -1,13 +1,25 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { CalendarDays, Users, BarChart3, Settings, LogOut } from 'lucide-react'
+import {
+  CalendarDays,
+  Users,
+  BarChart3,
+  Settings,
+  LogOut,
+  FileText,
+  CreditCard,
+} from 'lucide-react'
+import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { signOut } from '@/actions/auth'
+import { createPortalSession } from '@/actions/billing'
 import { Button } from '@/components/ui/button'
 import { usePresence } from '@/hooks/use-presence'
 import { WhoIsOnline } from '@/components/presence/who-is-online'
+import { StatusReportDrawer } from '@/components/ai/status-report-drawer'
 
 interface NavItem {
   label: string
@@ -26,6 +38,7 @@ interface SidebarNavProps {
 export function SidebarNav({ orgSlug, orgName, orgId, userId, userName }: SidebarNavProps) {
   const pathname = usePathname()
   const onlineUsers = usePresence(orgId, userId, userName)
+  const [reportOpen, setReportOpen] = useState(false)
 
   const items: NavItem[] = [
     { label: 'Timeline', href: `/${orgSlug}/timeline`, icon: CalendarDays },
@@ -34,44 +47,81 @@ export function SidebarNav({ orgSlug, orgName, orgId, userId, userName }: Sideba
     { label: 'Settings', href: `/${orgSlug}/settings`, icon: Settings },
   ]
 
+  async function handleManageBilling() {
+    const result = await createPortalSession(orgId)
+    if ('url' in result) {
+      window.location.href = result.url
+    } else {
+      toast.error(result.error)
+    }
+  }
+
   return (
-    <aside className="flex flex-col w-56 min-h-screen bg-sidebar border-r border-sidebar-border">
-      <div className="flex items-center gap-2 px-4 h-14 border-b border-sidebar-border">
-        <div className="w-6 h-6 rounded-md bg-primary" />
-        <span className="font-semibold text-sm text-sidebar-foreground truncate">{orgName}</span>
-      </div>
+    <>
+      <aside className="flex flex-col w-56 min-h-screen bg-sidebar border-r border-sidebar-border">
+        <div className="flex items-center gap-2 px-4 h-14 border-b border-sidebar-border">
+          <div className="w-6 h-6 rounded-md bg-primary" />
+          <span className="font-semibold text-sm text-sidebar-foreground truncate">{orgName}</span>
+        </div>
 
-      <nav className="flex-1 p-2 space-y-0.5">
-        {items.map((item) => {
-          const isActive = pathname.startsWith(item.href)
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                'flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors',
-                isActive
-                  ? 'bg-accent text-accent-foreground font-medium'
-                  : 'text-sidebar-foreground hover:bg-accent/50'
-              )}
+        <nav className="flex-1 p-2 space-y-0.5">
+          {items.map((item) => {
+            const isActive = pathname.startsWith(item.href)
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  'flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors',
+                  isActive
+                    ? 'bg-accent text-accent-foreground font-medium'
+                    : 'text-sidebar-foreground hover:bg-accent/50'
+                )}
+              >
+                <item.icon className="w-4 h-4 shrink-0" />
+                {item.label}
+              </Link>
+            )
+          })}
+
+          <button
+            onClick={() => setReportOpen(true)}
+            className="flex items-center gap-2.5 px-3 py-2 rounded-md text-sm text-sidebar-foreground hover:bg-accent/50 transition-colors w-full text-left"
+          >
+            <FileText className="w-4 h-4 shrink-0" />
+            Status Report
+          </button>
+        </nav>
+
+        <WhoIsOnline users={onlineUsers} />
+
+        <div className="p-2 border-t border-sidebar-border space-y-0.5">
+          <button
+            onClick={handleManageBilling}
+            className="flex items-center gap-2.5 px-3 py-2 rounded-md text-sm text-sidebar-foreground hover:bg-accent/50 transition-colors w-full text-left"
+          >
+            <CreditCard className="w-4 h-4 shrink-0" />
+            Manage billing
+          </button>
+          <form action={signOut}>
+            <Button
+              variant="ghost"
+              size="sm"
+              type="submit"
+              className="w-full justify-start gap-2.5 text-sidebar-foreground"
             >
-              <item.icon className="w-4 h-4 shrink-0" />
-              {item.label}
-            </Link>
-          )
-        })}
-      </nav>
+              <LogOut className="w-4 h-4" />
+              Sign out
+            </Button>
+          </form>
+        </div>
+      </aside>
 
-      <WhoIsOnline users={onlineUsers} />
-
-      <div className="p-2 border-t border-sidebar-border">
-        <form action={signOut}>
-          <Button variant="ghost" size="sm" type="submit" className="w-full justify-start gap-2.5 text-sidebar-foreground">
-            <LogOut className="w-4 h-4" />
-            Sign out
-          </Button>
-        </form>
-      </div>
-    </aside>
+      <StatusReportDrawer
+        open={reportOpen}
+        onClose={() => setReportOpen(false)}
+        orgId={orgId}
+      />
+    </>
   )
 }
