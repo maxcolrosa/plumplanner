@@ -58,11 +58,17 @@ export default async function ResourcesPage({ params }: Props) {
     tags: row.tags ?? [],
   }) as EngineTask)
 
-  // 4. Group by resource_id
+  // 4. Group by resource_id (filter out tasks with null resource_id)
   const tasksByResource: Record<string, EngineTask[]> = {}
   for (const task of engineTasks) {
+    if (task.resource_id == null) continue // skip orphaned tasks
     if (!tasksByResource[task.resource_id]) tasksByResource[task.resource_id] = []
     tasksByResource[task.resource_id].push(task)
+  }
+
+  // 5. Sort tasks by position within each resource
+  for (const resourceId of Object.keys(tasksByResource)) {
+    tasksByResource[resourceId].sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
   }
 
   const typedResources = (resources ?? []) as unknown as Array<{
