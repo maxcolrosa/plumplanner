@@ -1,17 +1,19 @@
 'use client'
 
 import { useRef, useState, useEffect } from 'react'
-import { Lock, AlertTriangle } from 'lucide-react'
+import { Lock, AlertTriangle, CalendarX } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useTimelineStore } from '@/lib/store/timeline'
 import { DAY_WIDTH_PX, dateToPixel, pixelToDate, taskWidthPx } from '@/lib/timeline-utils'
 import { adjustTask, reorderFluidTask } from '@/actions/schedule'
 import type { EngineTask } from '@/lib/engine/types'
+import { TaskContextMenu } from './task-context-menu'
 
 interface TaskBlockProps {
   task: EngineTask
   taskAreaRef: React.RefObject<HTMLDivElement | null>
   resourceTasks: EngineTask[]
+  calendarAvailable: boolean
 }
 
 function computeDropPosition(
@@ -29,7 +31,7 @@ function computeDropPosition(
     .length
 }
 
-export function TaskBlock({ task, taskAreaRef, resourceTasks }: TaskBlockProps) {
+export function TaskBlock({ task, taskAreaRef, resourceTasks, calendarAvailable }: TaskBlockProps) {
   const viewportStart = useTimelineStore((s) => s.viewportStart)
   const zoomLevel = useTimelineStore((s) => s.zoomLevel)
   const violations = useTimelineStore((s) => s.violations)
@@ -39,6 +41,8 @@ export function TaskBlock({ task, taskAreaRef, resourceTasks }: TaskBlockProps) 
   const revertOptimistic = useTimelineStore((s) => s.revertOptimistic)
   const setTasks = useTimelineStore((s) => s.setTasks)
   const setViolations = useTimelineStore((s) => s.setViolations)
+  const taskSyncErrors = useTimelineStore((s) => s.taskSyncErrors)
+  const hasSyncError = taskSyncErrors.has(task.id)
 
   const dayWidthPx = DAY_WIDTH_PX[zoomLevel]
 
@@ -227,8 +231,18 @@ export function TaskBlock({ task, taskAreaRef, resourceTasks }: TaskBlockProps) 
         {task.name}
       </span>
       {hasViolation && (
-        <AlertTriangle className="absolute top-0.5 right-0.5 h-3 w-3 text-timeline-violation" />
+        <AlertTriangle className={`absolute top-0.5 h-3 w-3 text-timeline-violation ${hasSyncError ? 'right-11' : 'right-8'}`} />
       )}
+      {hasSyncError && (
+        <CalendarX className="absolute top-0.5 right-8 h-3 w-3 text-amber-500" />
+      )}
+      <TaskContextMenu
+        taskId={task.id}
+        resourceId={task.resource_id}
+        calendarSyncEnabled={task.calendar_sync_enabled ?? false}
+        calendarAvailable={calendarAvailable}
+        hasSyncError={hasSyncError}
+      />
       {/* Resize handle */}
       <div
         className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize z-10"
@@ -248,7 +262,7 @@ export function TaskBlock({ task, taskAreaRef, resourceTasks }: TaskBlockProps) 
         position: 'absolute',
       }}
       title={task.name}
-      className={`${baseClasses} ${continuationClasses} ${shaking ? 'animate-shake' : ''} flex items-center px-1 overflow-hidden select-none`}
+      className={`group ${baseClasses} ${continuationClasses} ${shaking ? 'animate-shake' : ''} flex items-center px-1 overflow-hidden select-none`}
     >
       {task.type === 'fluid' ? (
         <motion.div

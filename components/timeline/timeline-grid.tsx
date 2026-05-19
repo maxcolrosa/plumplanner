@@ -17,6 +17,7 @@ interface TimelineGridProps {
     name: string
     icon_type: 'person' | 'room' | 'equipment'
     working_week: WorkingWeek
+    user_id: string | null
   }>
   orgId: string
 }

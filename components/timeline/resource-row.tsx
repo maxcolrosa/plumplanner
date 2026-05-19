@@ -13,6 +13,7 @@ interface ResourceRowProps {
     id: string
     name: string
     icon_type: 'person' | 'room' | 'equipment'
+    user_id: string | null
   }
 }
 
@@ -24,7 +25,10 @@ const ICON_MAP = {
 
 export function ResourceRow({ resource }: ResourceRowProps) {
   const tasks = useTimelineStore((s) => s.tasks[resource.id] ?? EMPTY_TASKS)
+  const connectedUserIds = useTimelineStore((s) => s.connectedUserIds)
   const taskAreaRef = useRef<HTMLDivElement>(null)
+
+  const calendarAvailable = resource.user_id != null && connectedUserIds.has(resource.user_id)
 
   const Icon = ICON_MAP[resource.icon_type]
 
@@ -44,6 +48,7 @@ export function ResourceRow({ resource }: ResourceRowProps) {
             task={task}
             taskAreaRef={taskAreaRef}
             resourceTasks={tasks}
+            calendarAvailable={calendarAvailable}
           />
         ))}
       </div>
