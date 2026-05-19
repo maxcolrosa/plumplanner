@@ -207,15 +207,15 @@ export async function retryCalendarSync(taskId: string): Promise<{ error?: strin
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
+  const { data: taskRow } = await supabase.from('tasks').select('*').eq('id', taskId).single()
+  if (!taskRow) return { error: 'Task not found' }
+
   const admin = createServiceClient()
 
   await admin
     .from('calendar_events')
     .update({ sync_error: false })
     .eq('task_id', taskId)
-
-  const { data: taskRow } = await supabase.from('tasks').select('*').eq('id', taskId).single()
-  if (!taskRow) return { error: 'Task not found' }
 
   const { syncTaskToCalendar: sync } = await import('@/lib/calendar/sync')
   const { toTask } = await import('./schedule-helpers')
