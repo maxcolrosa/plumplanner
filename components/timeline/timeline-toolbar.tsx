@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button'
 import { addUTCDays } from '@/lib/timeline-utils'
 import type { ZoomLevel } from '@/lib/timeline-utils'
 import type { WorkingWeek } from '@/lib/types'
+import { AddTaskDialog } from '@/components/timeline/add-task-dialog'
+import { CreateResourceDialog } from '@/components/timeline/create-resource-dialog'
 
 interface TimelineToolbarProps {
   resources: Array<{
@@ -38,9 +40,9 @@ export function TimelineToolbar({ resources, projects, orgId }: TimelineToolbarP
   const setZoomLevel = useTimelineStore((s) => s.setZoomLevel)
   const scrollToCurrentWeek = useTimelineStore((s) => s.scrollToCurrentWeek)
 
-  // Dialog open states — dialogs built in Task 5
-  const [_addResourceOpen, setAddResourceOpen] = useState(false)
-  const [_addTaskOpen, setAddTaskOpen] = useState(false)
+  // Dialog open states
+  const [addResourceOpen, setAddResourceOpen] = useState(false)
+  const [addTaskOpen, setAddTaskOpen] = useState(false)
 
   const step = ZOOM_STEPS[zoomLevel]
 
@@ -92,6 +94,19 @@ export function TimelineToolbar({ resources, projects, orgId }: TimelineToolbarP
           + Add Task
         </Button>
       </div>
+
+      <AddTaskDialog
+        open={addTaskOpen}
+        onClose={() => setAddTaskOpen(false)}
+        resources={resources}
+        projects={projects}
+        orgId={orgId}
+      />
+      <CreateResourceDialog
+        open={addResourceOpen}
+        onClose={() => setAddResourceOpen(false)}
+        orgId={orgId}
+      />
     </div>
   )
 }
