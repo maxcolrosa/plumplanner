@@ -31,14 +31,14 @@ export function CapacityView({ weekStart, orgSlug, children }: Props) {
       <div className="flex items-center gap-3">
         <button
           onClick={() => navigate(-7)}
-          className="px-2 py-1 text-sm border border-border rounded hover:bg-accent transition-colors"
+          className="h-7 px-3 rounded-[var(--radius)] border border-border text-[12px] font-medium text-muted-foreground hover:bg-plum-surface-raised hover:text-foreground transition-colors duration-150"
         >
           ←
         </button>
-        <span className="text-sm font-medium">Week of {label}</span>
+        <span className="text-[13px] font-semibold text-foreground">Week of {label}</span>
         <button
           onClick={() => navigate(7)}
-          className="px-2 py-1 text-sm border border-border rounded hover:bg-accent transition-colors"
+          className="h-7 px-3 rounded-[var(--radius)] border border-border text-[12px] font-medium text-muted-foreground hover:bg-plum-surface-raised hover:text-foreground transition-colors duration-150"
         >
           →
         </button>
